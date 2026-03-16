@@ -121,7 +121,7 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 <div class="bottom-nav">
   <button class="nav-btn active"><span class="nav-icon">⌂</span><span>Friends</span></button>
   <button class="nav-btn"><span class="nav-icon">◷</span><span>History</span></button>
-  <button class="nav-btn" id="notifBtn"><span class="nav-icon">⌁</span><span>Notify</span></button>
+  <button class="nav-btn" id="notifBtn"><span class="nav-icon">⌁</span><span id="notifBtnText">Notify</span></button>
 </div>
 
 <script>
@@ -133,6 +133,9 @@ async function init() {
   if (!localStorage.getItem('pingDisplayName') && !localStorage.getItem('pingSeenWelcome')) {
     localStorage.setItem('pingSeenWelcome','1');
     window.location.href = '/onboarding.html'; return;
+  }
+  if ('Notification' in window && Notification.permission === 'granted') {
+    document.getElementById('notifBtnText').textContent = 'Test';
   }
   heartbeat(); setInterval(heartbeat, 60000); setInterval(tickTimes, 30000);
   await loadFriends();
@@ -243,8 +246,36 @@ async function registerSW(){
 }
 
 document.getElementById('notifBtn').addEventListener('click',async()=>{
-  const p=await Notification.requestPermission();
-  p==='granted'?[toast('⌁','Notifications on','','success'),registerSW()]:toast('!','Blocked','Enable in browser settings','error');
+  if ('Notification' in window && Notification.permission === 'granted') {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        reg.showNotification('Test Ping', {
+          body: "This is what a ping looks like.",
+          icon: '/icon-192.png',
+          badge: '/badge.png',
+          data: { callId: 'test-ping' },
+          actions: [
+            { action: 'yes', title: '✓ Yes' },
+            { action: 'yes-30', title: '⏱ In 30 min' },
+            { action: 'no', title: '✗ Not now' }
+          ]
+        });
+        toast('⌁', 'Test notification sent', '', 'success');
+      } else {
+        toast('!', 'Service worker not active', '', 'error');
+      }
+    }
+  } else {
+    const p=await Notification.requestPermission();
+    if(p==='granted'){
+      toast('⌁','Notifications on','','success');
+      document.getElementById('notifBtnText').textContent='Test';
+      registerSW();
+    }else{
+      toast('!','Blocked','Enable in browser settings','error');
+    }
+  }
 });
 document.getElementById('refreshBtn').addEventListener('click',loadFriends);
 document.getElementById('profileBtn').addEventListener('click',()=>{window.location.href='/onboarding.html?settings';});
