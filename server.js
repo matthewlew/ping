@@ -168,7 +168,7 @@ app.post('/api/invites/create', (req, res) => {
   const token     = randomUUID().replace(/-/g, '').slice(0, 16);
   const expiresAt = Date.now() + 48 * 3600 * 1000;
   db.invites.set(token, { token, senderId: sender.id, expiresAt, usedAt: null, usedBy: null });
-  const base = process.env.BASE_URL || `http://localhost:${PORT}`;
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
   res.json({ token, url: `${base}/invite/${token}`, expiresAt });
 });
 

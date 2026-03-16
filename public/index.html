@@ -188,7 +188,7 @@ async function sendPing(toId){
 
 document.getElementById('createInviteBtn').addEventListener('click',async()=>{
   try{
-    const d=await fetch('/api/invites/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senderId:ME})}).then(r=>r.json());
+    const d=await fetch('/api/invites/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senderId:ME})}).then(r=>{if(!r.ok)throw new Error('Server error');return r.json()});
     document.getElementById('linkArea').innerHTML=`<div class="link-row"><code>${d.url}</code><button class="copy-btn" id="copyBtn" data-url="${d.url}">Copy</button></div>`;
     document.getElementById('copyBtn').addEventListener('click',async e=>{
       await navigator.clipboard.writeText(e.target.dataset.url);
