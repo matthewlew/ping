@@ -5,16 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ping</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0c0c0e">
+<meta name="theme-color" content="#fcfcfc" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400&display=swap">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
+  color-scheme: light dark;
   --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
   --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
   --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--warn:#ffb347;--r:18px;
+  --toast-success:rgba(200,245,96,.28);--toast-error:rgba(255,107,107,.28);
+  --pill-asleep-bg:rgba(120,120,180,.18);--pill-asleep-color:#9a9ac0;
+  --pill-morning-bg:rgba(245,200,66,.14);--pill-morning-color:#f5c842;
+  --pill-afternoon-bg:rgba(100,200,255,.14);--pill-afternoon-color:#64c8ff;
+  --pill-evening-bg:rgba(255,150,100,.14);--pill-evening-color:#ff9664;
+  --pill-night-bg:rgba(160,100,255,.14);--pill-night-color:#b46fff;
+  --ping-quiet-bg:rgba(255,255,255,.04);
+  --invite-btn-text:#0c0c0e;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:#fcfcfc;--surf:#ffffff;--surf2:#f5f5f5;
+    --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
+    --text:#111111;--muted:rgba(0,0,0,0.45);--muted2:rgba(0,0,0,0.65);
+    --accent:#427800;--accent-d:rgba(66,120,0,0.1);--warn:#995c00;
+    --toast-success:rgba(66,120,0,.2);--toast-error:rgba(200,0,0,.15);
+    --pill-asleep-bg:rgba(70,70,120,.12);--pill-asleep-color:#4a4a70;
+    --pill-morning-bg:rgba(200,140,0,.12);--pill-morning-color:#8c6600;
+    --pill-afternoon-bg:rgba(0,100,200,.12);--pill-afternoon-color:#004b99;
+    --pill-evening-bg:rgba(200,80,0,.12);--pill-evening-color:#b34700;
+    --pill-night-bg:rgba(100,30,200,.12);--pill-night-color:#5600b3;
+    --ping-quiet-bg:rgba(0,0,0,.04);
+    --invite-btn-text:#ffffff;
+  }
 }
 html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
 body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
@@ -27,7 +53,7 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 
 .sec-label{font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:20px 20px 8px}
 
-.pending-banner{margin:12px 16px 0;background:var(--accent-d);border:1px solid rgba(200,245,96,.2);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:13px}
+.pending-banner{margin:12px 16px 0;background:var(--accent-d);border:1px solid var(--toast-success);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:13px}
 .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:p 1.4s infinite}
 @keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
 
@@ -48,18 +74,18 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 .card-meta{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
 .card-time{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2)}
 .pill{font-size:10px;font-weight:500;letter-spacing:.3px;padding:2px 6px;border-radius:20px}
-.pill.asleep{background:rgba(120,120,180,.18);color:#9a9ac0}
-.pill.morning{background:rgba(245,200,66,.14);color:#f5c842}
-.pill.afternoon{background:rgba(100,200,255,.14);color:#64c8ff}
-.pill.evening{background:rgba(255,150,100,.14);color:#ff9664}
-.pill.night{background:rgba(160,100,255,.14);color:#b46fff}
+.pill.asleep{background:var(--pill-asleep-bg);color:var(--pill-asleep-color)}
+.pill.morning{background:var(--pill-morning-bg);color:var(--pill-morning-color)}
+.pill.afternoon{background:var(--pill-afternoon-bg);color:var(--pill-afternoon-color)}
+.pill.evening{background:var(--pill-evening-bg);color:var(--pill-evening-color)}
+.pill.night{background:var(--pill-night-bg);color:var(--pill-night-color)}
 .sig{font-size:10px;color:var(--warn)}
 .best-chips{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .best-chip{font-size:9px;padding:1px 5px;border-radius:10px;background:var(--surf2);color:var(--muted2);border:1px solid var(--border)}
 
-.ping-btn{width:42px;height:42px;border-radius:13px;background:var(--accent-d);border:1px solid rgba(200,245,96,.22);color:var(--accent);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s}
-.ping-btn:active{background:rgba(200,245,96,.22);transform:scale(.93)}
-.ping-btn.quiet{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--muted)}
+.ping-btn{width:42px;height:42px;border-radius:13px;background:var(--accent-d);border:1px solid var(--toast-success);color:var(--accent);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s}
+.ping-btn:active{background:var(--toast-success);transform:scale(.93)}
+.ping-btn.quiet{background:var(--ping-quiet-bg);border-color:var(--border);color:var(--muted)}
 
 .empty{text-align:center;padding:44px 24px;color:var(--muted2)}
 .empty-emoji{font-size:36px;margin-bottom:12px}
@@ -68,18 +94,18 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 .invite-section{padding:0 16px}
 .invite-card{background:var(--surf);border:1px dashed var(--border2);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:10px}
 .invite-card p{font-size:13px;color:var(--muted2);line-height:1.5}
-.invite-btn{background:var(--accent);color:#0c0c0e;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:7px;justify-content:center}
+.invite-btn{background:var(--accent);color:var(--invite-btn-text);border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:7px;justify-content:center}
 .invite-btn:active{opacity:.85}
 
 .link-row{background:var(--surf2);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px;animation:su .2s ease}
 .link-row code{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.copy-btn{padding:5px 9px;border-radius:7px;background:var(--accent-d);border:1px solid rgba(200,245,96,.2);color:var(--accent);font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
-.copy-btn.copied{background:rgba(200,245,96,.28)}
+.copy-btn{padding:5px 9px;border-radius:7px;background:var(--accent-d);border:1px solid var(--toast-success);color:var(--accent);font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.copy-btn.copied{background:var(--toast-success)}
 
 .toast-wrap{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;display:flex;flex-direction:column;gap:7px;z-index:200;pointer-events:none}
 .toast{background:var(--surf2);border:1px solid var(--border2);border-radius:13px;padding:11px 14px;font-size:13px;animation:su .2s ease,fo .3s ease 2.7s forwards;display:flex;gap:9px;align-items:flex-start}
-.toast.success{border-color:rgba(200,245,96,.28)}
-.toast.error{border-color:rgba(255,107,107,.28)}
+.toast.success{border-color:var(--toast-success)}
+.toast.error{border-color:var(--toast-error)}
 .toast-icon{font-size:15px;flex-shrink:0;margin-top:1px}
 .toast-title{font-weight:500;margin-bottom:1px}
 .toast-msg{font-size:12px;color:var(--muted2)}

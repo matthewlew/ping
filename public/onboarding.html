@@ -4,16 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ping — setup</title>
-<meta name="theme-color" content="#0c0c0e">
+<meta name="theme-color" content="#fcfcfc" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400&display=swap">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
+  color-scheme: light dark;
   --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
   --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
   --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--red:#ff6b6b;--r:18px;
+  --btn-p-text:#0c0c0e;
+  --input-focus:rgba(255,255,255,.22);
+  --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  --select-option-bg:#1a1a24;
+  --data-card-never-border:rgba(200,245,96,.1);
+  --data-card-never-bg:rgba(200,245,96,.03);
+  --data-card-never-text:rgba(200,245,96,.55);
+  --data-card-delete-border:rgba(255,107,107,.1);
+  --data-card-delete-bg:rgba(255,107,107,.03);
+  --data-card-delete-text:rgba(255,150,150,.6);
+  --data-card-delete-strong:#ff9090;
+  --danger-card-bg:rgba(255,107,107,.04);
+  --danger-card-border:rgba(255,107,107,.18);
+  --danger-card-text:rgba(255,150,150,.65);
+  --btn-danger-border:rgba(255,107,107,.35);
+  --btn-danger-active:rgba(255,107,107,.08);
+  --modal-bg:rgba(0,0,0,.7);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:#fcfcfc;--surf:#ffffff;--surf2:#f5f5f5;
+    --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
+    --text:#111111;--muted:rgba(0,0,0,0.45);--muted2:rgba(0,0,0,0.65);
+    --accent:#427800;--accent-d:rgba(66,120,0,0.1);--red:#c40000;
+    --btn-p-text:#ffffff;
+    --input-focus:rgba(0,0,0,.22);
+    --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(0,0,0,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    --select-option-bg:#ffffff;
+    --data-card-never-border:rgba(66,120,0,.2);
+    --data-card-never-bg:rgba(66,120,0,.05);
+    --data-card-never-text:rgba(66,120,0,.8);
+    --data-card-delete-border:rgba(200,0,0,.2);
+    --data-card-delete-bg:rgba(200,0,0,.05);
+    --data-card-delete-text:rgba(200,0,0,.8);
+    --data-card-delete-strong:#cc0000;
+    --danger-card-bg:rgba(200,0,0,.04);
+    --danger-card-border:rgba(200,0,0,.2);
+    --danger-card-text:rgba(200,0,0,.8);
+    --btn-danger-border:rgba(200,0,0,.35);
+    --btn-danger-active:rgba(200,0,0,.08);
+    --modal-bg:rgba(0,0,0,.4);
+  }
 }
 html{background:var(--bg)}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh}
@@ -23,7 +67,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── Shared buttons ── */
-.btn-p{width:100%;background:var(--accent);color:#0c0c0e;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-p{width:100%;background:var(--accent);color:var(--btn-p-text);border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
 .btn-p:active{opacity:.85} .btn-p:disabled{opacity:.35;cursor:default}
 .btn-g{width:100%;background:none;border:1px solid var(--border2);border-radius:14px;padding:14px;font-size:15px;color:var(--muted2);font-family:'DM Sans',sans-serif;cursor:pointer;transition:border-color .15s}
 .btn-g:active{border-color:var(--border2);color:var(--text)}
@@ -32,9 +76,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
 .field input,.field select{width:100%;padding:14px 15px;background:var(--surf2);border:1px solid var(--border2);border-radius:13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
-.field input::placeholder{color:var(--muted)} .field input:focus,.field select:focus{border-color:rgba(255,255,255,.22)}
-.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
-.field select option{background:#1a1a24}
+.field input::placeholder{color:var(--muted)} .field input:focus,.field select:focus{border-color:var(--input-focus)}
+.field select{background-image:var(--select-arrow);background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.field select option{background:var(--select-option-bg)}
 .time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .time-row input[type=time]{font-family:'DM Mono',monospace;font-size:17px;text-align:center;padding:13px 8px}
 
@@ -56,10 +100,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .dc-icon{font-size:14px;flex-shrink:0;margin-top:2px}
 .dc-text{font-size:13px;color:var(--muted2);line-height:1.45}
 .dc-text strong{color:var(--text);font-weight:500}
-.data-card.never{border-color:rgba(200,245,96,.1);background:rgba(200,245,96,.03)}
-.data-card.never .dc-text{color:rgba(200,245,96,.55)} .data-card.never .dc-text strong{color:var(--accent)}
-.data-card.delete-info{border-color:rgba(255,107,107,.1);background:rgba(255,107,107,.03)}
-.data-card.delete-info .dc-text{color:rgba(255,150,150,.6)} .data-card.delete-info .dc-text strong{color:#ff9090}
+.data-card.never{border-color:var(--data-card-never-border);background:var(--data-card-never-bg)}
+.data-card.never .dc-text{color:var(--data-card-never-text)} .data-card.never .dc-text strong{color:var(--accent)}
+.data-card.delete-info{border-color:var(--data-card-delete-border);background:var(--data-card-delete-bg)}
+.data-card.delete-info .dc-text{color:var(--data-card-delete-text)} .data-card.delete-info .dc-text strong{color:var(--data-card-delete-strong)}
 
 .w-cta{padding:22px 16px 0;display:flex;flex-direction:column;gap:9px}
 
@@ -96,13 +140,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .store-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);text-align:right;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .store-val.good{color:var(--accent)} .store-val.dim{color:var(--muted);font-style:italic}
 
-.danger-card{background:rgba(255,107,107,.04);border:1px solid rgba(255,107,107,.18);border-radius:var(--r);padding:15px;display:flex;flex-direction:column;gap:11px}
-.danger-card p{font-size:12px;color:rgba(255,150,150,.65);line-height:1.5}
-.btn-danger{background:none;border:1px solid rgba(255,107,107,.35);border-radius:12px;padding:12px;font-size:14px;font-weight:500;color:var(--red);font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s}
-.btn-danger:active{background:rgba(255,107,107,.08)}
+.danger-card{background:var(--danger-card-bg);border:1px solid var(--danger-card-border);border-radius:var(--r);padding:15px;display:flex;flex-direction:column;gap:11px}
+.danger-card p{font-size:12px;color:var(--danger-card-text);line-height:1.5}
+.btn-danger{background:none;border:1px solid var(--btn-danger-border);border-radius:12px;padding:12px;font-size:14px;font-weight:500;color:var(--red);font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s}
+.btn-danger:active{background:var(--btn-danger-active)}
 
 /* Modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg{position:fixed;inset:0;background:var(--modal-bg);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-bg.open{opacity:1;pointer-events:all}
 .modal{background:var(--surf);border:1px solid var(--border2);border-radius:var(--r);padding:22px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;transform:translateY(20px);transition:transform .25s ease}
 .modal-bg.open .modal{transform:translateY(0)}
