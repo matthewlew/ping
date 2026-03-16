@@ -191,9 +191,30 @@ document.getElementById('createInviteBtn').addEventListener('click',async()=>{
     const d=await fetch('/api/invites/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senderId:ME})}).then(r=>{if(!r.ok)throw new Error('Server error');return r.json()});
     document.getElementById('linkArea').innerHTML=`<div class="link-row"><code>${d.url}</code><button class="copy-btn" id="copyBtn" data-url="${d.url}">Copy</button></div>`;
     document.getElementById('copyBtn').addEventListener('click',async e=>{
-      await navigator.clipboard.writeText(e.target.dataset.url);
-      e.target.textContent='Copied!';e.target.classList.add('copied');
-      setTimeout(()=>{e.target.textContent='Copy';e.target.classList.remove('copied');},2000);
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(e.target.dataset.url);
+        } else {
+          const textArea = document.createElement("textarea");
+          textArea.value = e.target.dataset.url;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-999999px";
+          textArea.style.top = "-999999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand('copy');
+          } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+          }
+          document.body.removeChild(textArea);
+        }
+        e.target.textContent='Copied!';e.target.classList.add('copied');
+        setTimeout(()=>{e.target.textContent='Copy';e.target.classList.remove('copied');},2000);
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
     });
     toast('🔗','Link created','Expires in 48 hours.','success');
   }catch{toast('!','Error','Could not create invite','error');}
