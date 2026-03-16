@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ping</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0c0c0e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
+  --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--warn:#ffb347;--r:18px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
+
+.header{position:sticky;top:0;z-index:10;padding:max(env(safe-area-inset-top,0px),16px) 20px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.wordmark{font-family:'Fraunces',serif;font-size:22px;font-weight:300;letter-spacing:-.3px}
+.header-actions{display:flex;gap:8px}
+.icon-btn{width:38px;height:38px;border-radius:11px;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.icon-btn:active{background:var(--surf)}
+
+.sec-label{font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:20px 20px 8px}
+
+.pending-banner{margin:12px 16px 0;background:var(--accent-d);border:1px solid rgba(200,245,96,.2);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:13px}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:p 1.4s infinite}
+@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+.cards{padding:0 16px;display:flex;flex-direction:column;gap:9px}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:grid;grid-template-columns:50px 1fr auto;gap:0 11px;align-items:center;transition:border-color .2s}
+.avi{width:50px;height:50px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.avi.blob{border-radius:60% 40% 55% 45%/50% 55% 45% 50%}
+.avi.squircle{border-radius:35%}
+.avi.circle{border-radius:50%}
+.avi.pill{border-radius:50px}
+.avi.shield{border-radius:50% 50% 40% 40%}
+.avi.hexagon{clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}
+.card[data-age="old"] .avi{filter:saturate(.12)}
+.card[data-age="fading"] .avi{filter:saturate(.45)}
+
+.card-info{min-width:0}
+.card-name{font-size:15px;font-weight:500}
+.card-meta{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.card-time{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2)}
+.pill{font-size:10px;font-weight:500;letter-spacing:.3px;padding:2px 6px;border-radius:20px}
+.pill.asleep{background:rgba(120,120,180,.18);color:#9a9ac0}
+.pill.morning{background:rgba(245,200,66,.14);color:#f5c842}
+.pill.afternoon{background:rgba(100,200,255,.14);color:#64c8ff}
+.pill.evening{background:rgba(255,150,100,.14);color:#ff9664}
+.pill.night{background:rgba(160,100,255,.14);color:#b46fff}
+.sig{font-size:10px;color:var(--warn)}
+.best-chips{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.best-chip{font-size:9px;padding:1px 5px;border-radius:10px;background:var(--surf2);color:var(--muted2);border:1px solid var(--border)}
+
+.ping-btn{width:42px;height:42px;border-radius:13px;background:var(--accent-d);border:1px solid rgba(200,245,96,.22);color:var(--accent);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s}
+.ping-btn:active{background:rgba(200,245,96,.22);transform:scale(.93)}
+.ping-btn.quiet{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--muted)}
+
+.empty{text-align:center;padding:44px 24px;color:var(--muted2)}
+.empty-emoji{font-size:36px;margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.6}
+
+.invite-section{padding:0 16px}
+.invite-card{background:var(--surf);border:1px dashed var(--border2);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:10px}
+.invite-card p{font-size:13px;color:var(--muted2);line-height:1.5}
+.invite-btn{background:var(--accent);color:#0c0c0e;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:7px;justify-content:center}
+.invite-btn:active{opacity:.85}
+
+.link-row{background:var(--surf2);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px;animation:su .2s ease}
+.link-row code{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{padding:5px 9px;border-radius:7px;background:var(--accent-d);border:1px solid rgba(200,245,96,.2);color:var(--accent);font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.copy-btn.copied{background:rgba(200,245,96,.28)}
+
+.toast-wrap{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;display:flex;flex-direction:column;gap:7px;z-index:200;pointer-events:none}
+.toast{background:var(--surf2);border:1px solid var(--border2);border-radius:13px;padding:11px 14px;font-size:13px;animation:su .2s ease,fo .3s ease 2.7s forwards;display:flex;gap:9px;align-items:flex-start}
+.toast.success{border-color:rgba(200,245,96,.28)}
+.toast.error{border-color:rgba(255,107,107,.28)}
+.toast-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.toast-title{font-weight:500;margin-bottom:1px}
+.toast-msg{font-size:12px;color:var(--muted2)}
+
+@keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fo{to{opacity:0;transform:translateY(-6px)}}
+
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg);border-top:1px solid var(--border);display:flex;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));gap:4px}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:11px;border:none;background:none;color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:10px;cursor:pointer;transition:color .15s,background .15s}
+.nav-icon{font-size:19px}
+.nav-btn.active{color:var(--accent);background:var(--accent-d)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wordmark">ping</div>
+  <div class="header-actions">
+    <button class="icon-btn" id="refreshBtn">↻</button>
+    <button class="icon-btn" id="profileBtn">◉</button>
+  </div>
+</div>
+
+<div id="pendingBanner"></div>
+<div class="sec-label">inner circle</div>
+<div class="cards" id="cardList"></div>
+
+<div class="sec-label" style="margin-top:6px">add someone</div>
+<div class="invite-section">
+  <div class="invite-card">
+    <p>Send a one-time link. They see your timezone and available window, set their own schedule, and both cards appear instantly.</p>
+    <button class="invite-btn" id="createInviteBtn">＋ &nbsp;Create invite link</button>
+    <div id="linkArea"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active"><span class="nav-icon">⌂</span><span>Friends</span></button>
+  <button class="nav-btn"><span class="nav-icon">◷</span><span>History</span></button>
+  <button class="nav-btn" id="notifBtn"><span class="nav-icon">⌁</span><span>Notify</span></button>
+</div>
+
+<script>
+const ME = localStorage.getItem('pingUserId') || 'user-demo-a';
+const TOD_ICON = {morning:'☀',afternoon:'⛅',evening:'🌆',night:'🌙'};
+let friends = [];
+
+async function init() {
+  if (!localStorage.getItem('pingDisplayName') && !localStorage.getItem('pingSeenWelcome')) {
+    localStorage.setItem('pingSeenWelcome','1');
+    window.location.href = '/onboarding.html'; return;
+  }
+  heartbeat(); setInterval(heartbeat, 60000); setInterval(tickTimes, 30000);
+  await loadFriends();
+  registerSW();
+}
+
+function heartbeat(){ fetch('/api/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:ME})}).catch(()=>{}); }
+
+async function loadFriends(){
+  try{ const d = await fetch(`/api/friends/${ME}`).then(r=>r.json()); friends=d.friends||[]; renderCards(); }catch{}
+}
+
+function tickTimes(){
+  document.querySelectorAll('[data-fid]').forEach(card=>{
+    const f=friends.find(x=>x.id===card.dataset.fid); if(!f)return;
+    const t=card.querySelector('.card-time'); if(t)t.textContent=localLabel(f.timezone);
+  });
+}
+
+function localLabel(tz){ try{return new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',hour12:true}).format(new Date())}catch{return'--:--'} }
+
+function renderCards(){
+  const list=document.getElementById('cardList');
+  if(!friends.length){ list.innerHTML=`<div class="empty"><div class="empty-emoji">👋</div><p>No friends yet.<br>Send an invite link to add someone.</p></div>`; return; }
+  list.innerHTML=friends.map(f=>{
+    const age=f.daysSinceLastCall===null?'':f.daysSinceLastCall>45?'old':f.daysSinceLastCall>14?'fading':'';
+    const warn=!f.pushValid?`<span class="sig">⚠ push off</span>`:!f.appInstalled?`<span class="sig">◌ inactive</span>`:'';
+    const chips=(f.bestTimes||[]).map(t=>`<span class="best-chip">${TOD_ICON[t]||''} ${t}</span>`).join('');
+    return `<div class="card" data-age="${age}" data-fid="${f.id}">
+      <div class="avi ${f.avatarShape||'circle'}">${f.avatar}</div>
+      <div class="card-info">
+        <div class="card-name">${f.name}</div>
+        <div class="card-meta"><span class="card-time">${f.localTime}</span><span class="pill ${f.status}">${f.status}</span>${warn}</div>
+        ${chips?`<div class="best-chips">${chips}</div>`:''}
+      </div>
+      <button class="ping-btn ${f.isQuiet?'quiet':''}" data-id="${f.id}" title="${f.isQuiet?'Quiet hours':'Ping '+f.name}">${f.isQuiet?'🌙':'↗'}</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.ping-btn').forEach(b=>b.addEventListener('click',()=>sendPing(b.dataset.id)));
+}
+
+async function sendPing(toId){
+  try{
+    const res=await fetch('/api/calls/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fromId:ME,toId})});
+    const d=await res.json();
+    if(res.status===403){toast('🌙','Quiet hours',d.message,'');return;}
+    if(!res.ok){toast('!','Error',d.error||'Something went wrong','error');return;}
+    toast('↗','Ping sent',d.message,'success');
+    const f=friends.find(x=>x.id===toId);
+    if(f)document.getElementById('pendingBanner').innerHTML=`<div class="pending-banner"><div class="pulse"></div><span>Waiting on <strong>${f.name}</strong>…</span></div>`;
+  }catch{toast('!','Error','Could not reach server','error');}
+}
+
+document.getElementById('createInviteBtn').addEventListener('click',async()=>{
+  try{
+    const d=await fetch('/api/invites/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senderId:ME})}).then(r=>r.json());
+    document.getElementById('linkArea').innerHTML=`<div class="link-row"><code>${d.url}</code><button class="copy-btn" id="copyBtn" data-url="${d.url}">Copy</button></div>`;
+    document.getElementById('copyBtn').addEventListener('click',async e=>{
+      await navigator.clipboard.writeText(e.target.dataset.url);
+      e.target.textContent='Copied!';e.target.classList.add('copied');
+      setTimeout(()=>{e.target.textContent='Copy';e.target.classList.remove('copied');},2000);
+    });
+    toast('🔗','Link created','Expires in 48 hours.','success');
+  }catch{toast('!','Error','Could not create invite','error');}
+});
+
+async function registerSW(){
+  if(!('serviceWorker'in navigator)||!('PushManager'in window))return;
+  try{
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    const {key}=await fetch('/api/vapid-public-key').then(r=>r.json());
+    if(key==='YOUR_VAPID_PUBLIC_KEY')return;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});
+    await fetch('/api/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:ME,subscription:sub.toJSON()})});
+    reg.active?.postMessage({type:'set-user-id',userId:ME});
+    navigator.serviceWorker.addEventListener('message',e=>{
+      const{type,data}=e.data||{};
+      if(type==='call-response'){
+        document.getElementById('pendingBanner').innerHTML='';
+        const msgs={accepted:'said yes!',declined:"can't talk now.",deferred:'free in 30 min.'};
+        toast('📞',data.friendName,msgs[data.response]||'','success'); loadFriends();
+      }
+      if(type==='invite-accepted'){toast('👋','New connection',data.friendName+' accepted your invite','success');loadFriends();}
+    });
+  }catch(e){console.log('SW:',e.message);}
+}
+
+document.getElementById('notifBtn').addEventListener('click',async()=>{
+  const p=await Notification.requestPermission();
+  p==='granted'?[toast('⌁','Notifications on','','success'),registerSW()]:toast('!','Blocked','Enable in browser settings','error');
+});
+document.getElementById('refreshBtn').addEventListener('click',loadFriends);
+document.getElementById('profileBtn').addEventListener('click',()=>{window.location.href='/onboarding.html?settings';});
+
+function toast(icon,title,msg,type){
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-icon">${icon}</span><div><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+function urlB64(b){const p='='.repeat((4-b.length%4)%4);const r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return new Uint8Array([...r].map(c=>c.charCodeAt(0)));}
+
+init();
+</script>
+</body>
+</html>

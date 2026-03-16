@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ping — you're invited</title>
+<meta name="theme-color" content="#0c0c0e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #0c0c0e;
+  --surface:  #13131a;
+  --surface2: #1a1a24;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #eeeef2;
+  --muted:    rgba(238,238,242,0.38);
+  --muted2:   rgba(238,238,242,0.6);
+  --accent:   #c8f560;
+  --accent-d: rgba(200,245,96,0.1);
+  --gold:     #f5c842;
+  --gold-d:   rgba(245,200,66,0.12);
+  --teal:     #42d4c8;
+  --teal-d:   rgba(66,212,200,0.12);
+  --r: 18px; --rr: 24px;
+}
+
+html { background: var(--bg); }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+/* Loading */
+#loadingScreen {
+  min-height: 100dvh; display: flex;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px;
+}
+.wordmark-load {
+  font-family: 'Fraunces', serif;
+  font-size: 28px; font-weight: 300; color: var(--text);
+}
+.dots { display: flex; gap: 6px; }
+.dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+  animation: bpulse 1.3s ease-in-out infinite;
+}
+.dot:nth-child(2){animation-delay:.15s} .dot:nth-child(3){animation-delay:.3s}
+@keyframes bpulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* Error */
+#errorScreen {
+  display: none; min-height: 100dvh;
+  align-items: center; justify-content: center; padding: 32px;
+}
+.error-box {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--rr); padding: 32px 24px; text-align: center;
+  display: flex; flex-direction: column; gap: 12px; max-width: 340px;
+}
+.error-box h2 { font-family:'Fraunces',serif; font-weight:300; font-size:24px; }
+.error-box p  { font-size:14px; color:var(--muted2); line-height:1.6; }
+
+/* Flow */
+#inviteFlow {
+  display: none; flex-direction: column;
+  min-height: 100dvh; max-width: 430px; margin: 0 auto;
+}
+
+.inv-header {
+  padding: 20px 20px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.wordmark { font-family:'Fraunces',serif; font-size:20px; font-weight:300; }
+.step-counter { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+
+/* Steps */
+.step { display:none; flex-direction:column; flex:1; }
+.step.active { display:flex; animation: stepIn .28s ease; }
+@keyframes stepIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Step 0 ── */
+.s0-body { padding:20px 20px 0; display:flex; flex-direction:column; gap:16px; flex:1; }
+
+.sender-strip {
+  display:flex; align-items:center; gap:14px;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--r); padding:16px;
+}
+.sender-avi {
+  width:56px; height:56px; background:var(--gold-d);
+  border:1.5px solid rgba(245,200,66,.3);
+  border-radius:60% 40% 55% 45% / 50% 55% 45% 50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; flex-shrink:0;
+}
+.sender-info { flex:1; min-width:0; }
+.sender-name { font-size:18px; font-weight:600; letter-spacing:-.2px; }
+.sender-sub  { font-size:12px; color:var(--muted2); margin-top:2px; display:flex; align-items:center; gap:6px; }
+.sdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.sdot.morning{background:#f5c842} .sdot.afternoon{background:#64c8ff}
+.sdot.evening{background:#ff9664} .sdot.asleep{background:#6a6a9a} .sdot.night{background:#a06eff}
+
+.inv-headline { font-family:'Fraunces',serif; font-size:26px; font-weight:300; line-height:1.25; letter-spacing:-.3px; }
+.inv-headline em { font-style:italic; color:var(--gold); }
+
+/* Overlap card */
+.overlap-card {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--r); padding:18px 16px 14px;
+  display:flex; flex-direction:column; gap:14px;
+}
+.oc-label { font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.hours-bar {
+  width:100%; height:36px; border-radius:8px;
+  background:var(--surface2); position:relative; overflow:hidden;
+}
+.band { position:absolute; top:0; height:100%; }
+.band-s  { background:rgba(245,200,66,.18); }
+.band-r  { background:rgba(66,212,200,.18); }
+.band-ov { background:rgba(200,245,96,.32); }
+.hour-ticks { display:flex; justify-content:space-between; padding:4px 0 0; }
+.tick { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); width:0; text-align:center; white-space:nowrap; }
+
+.ov-legend { display:flex; flex-direction:column; gap:6px; }
+.legend-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted2); }
+.lswatch { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+.lswatch.s{background:rgba(245,200,66,.5)} .lswatch.r{background:rgba(66,212,200,.5)} .lswatch.ov{background:rgba(200,245,96,.6)}
+.legend-label { flex:1; }
+.legend-time  { font-family:'DM Mono',monospace; font-size:11px; color:var(--text); text-align:right; }
+
+.best-window {
+  background:var(--accent-d); border:1px solid rgba(200,245,96,.2);
+  border-radius:12px; padding:12px 14px;
+  display:flex; gap:10px; align-items:flex-start;
+}
+.bw-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+.bw-text { font-size:13px; line-height:1.5; color:var(--muted2); }
+.bw-text strong { color:var(--accent); font-weight:500; }
+.no-overlap { font-size:13px; color:var(--muted2); line-height:1.5; padding:4px 0; }
+
+.s0-cta { padding:20px; margin-top:auto; }
+
+/* Buttons */
+.btn-primary {
+  width:100%; background:var(--accent); color:#0c0c0e;
+  border:none; border-radius:14px; padding:16px;
+  font-size:16px; font-weight:600; font-family:'DM Sans',sans-serif;
+  cursor:pointer; transition:opacity .15s, transform .1s; letter-spacing:-.2px;
+}
+.btn-primary:active{opacity:.88;transform:scale(.98)}
+.btn-primary:disabled{opacity:.35;cursor:default;transform:none}
+.btn-ghost {
+  width:100%; background:none; border:1px solid var(--border2);
+  border-radius:14px; padding:14px; font-size:15px;
+  color:var(--muted2); font-family:'DM Sans',sans-serif; cursor:pointer;
+}
+.btn-ghost:active{border-color:var(--border2);color:var(--text)}
+
+/* ── Step 1 ── */
+.s1-body { padding:28px 20px 0; flex:1; display:flex; flex-direction:column; gap:28px; }
+.step-eyebrow { font-size:11px; font-weight:500; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+.step-headline { font-family:'Fraunces',serif; font-size:28px; font-weight:300; line-height:1.2; letter-spacing:-.4px; }
+.step-sub { font-size:14px; color:var(--muted2); line-height:1.5; margin-top:6px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:11px; font-weight:500; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); }
+.field input, .field select {
+  width:100%; padding:15px 16px;
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:13px; color:var(--text);
+  font-family:'DM Sans',sans-serif; font-size:16px;
+  outline:none; transition:border-color .15s;
+  -webkit-appearance:none; appearance:none;
+}
+.field input::placeholder{color:var(--muted)}
+.field input:focus,.field select:focus{border-color:rgba(255,255,255,.22)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.field select option{background:#1a1a24}
+.s1-cta{padding:20px;margin-top:auto}
+
+/* ── Step 2 ── */
+.s2-body{padding:28px 20px 0;flex:1;display:flex;flex-direction:column;gap:24px}
+.time-range{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.time-range input[type="time"]{padding:14px 12px;font-size:18px;font-family:'DM Mono',monospace;letter-spacing:1px;text-align:center}
+.quiet-preview{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted2);line-height:1.5}
+.quiet-preview strong{color:var(--text);font-weight:500}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day-chip{aspect-ratio:1;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--muted2);cursor:pointer;transition:background .12s,border-color .12s,color .12s;user-select:none}
+.day-chip.on{background:var(--teal-d);border-color:rgba(66,212,200,.3);color:var(--teal)}
+.s2-cta{padding:20px;margin-top:auto}
+
+/* ── Step 3 ── */
+.s3-body{padding:28px 20px 0;flex:1;display:flex;flex-direction:column;gap:24px}
+.tod-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tod-chip{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:16px 14px;cursor:pointer;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:6px;user-select:none}
+.tod-chip.on{background:var(--accent-d);border-color:rgba(200,245,96,.28)}
+.tod-chip.on .tod-label{color:var(--accent)}
+.tod-emoji{font-size:22px}
+.tod-label{font-size:14px;font-weight:500;color:var(--text);transition:color .12s}
+.tod-sub{font-size:11px;color:var(--muted)}
+.overlap-update{background:var(--accent-d);border:1px solid rgba(200,245,96,.2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted2);line-height:1.5;min-height:56px}
+.overlap-update strong{color:var(--accent)}
+.s3-cta{padding:20px;margin-top:auto;display:flex;flex-direction:column;gap:8px}
+
+/* ── Step 4 ── */
+.s4-body{padding:48px 20px 0;flex:1;display:flex;flex-direction:column;gap:24px;align-items:center}
+.success-rings{position:relative;width:100px;height:100px;margin:0 auto}
+.ring{position:absolute;border-radius:50%;border:1.5px solid;animation:ringPulse 2.5s ease-in-out infinite}
+.ring-1{inset:0;border-color:rgba(200,245,96,.5)}
+.ring-2{inset:-14px;border-color:rgba(200,245,96,.25);animation-delay:.4s}
+.ring-3{inset:-28px;border-color:rgba(200,245,96,.1);animation-delay:.8s}
+.ring-inner{position:absolute;inset:0;background:var(--accent-d);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px}
+@keyframes ringPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.03)}}
+.success-text{text-align:center}
+.success-text h2{font-family:'Fraunces',serif;font-size:28px;font-weight:300;letter-spacing:-.3px;margin-bottom:8px}
+.success-text p{font-size:15px;color:var(--muted2);line-height:1.6}
+.connected-pair{width:100%;display:flex;flex-direction:column;gap:8px}
+.connected-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.mini-avi{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.mini-avi.sa{background:var(--gold-d);border:1px solid rgba(245,200,66,.25)}
+.mini-avi.ra{background:var(--teal-d);border:1px solid rgba(66,212,200,.25)}
+.conn-info{flex:1;min-width:0}
+.conn-name{font-size:15px;font-weight:500}
+.conn-sub{font-size:12px;color:var(--muted2);font-family:'DM Mono',monospace}
+.conn-window{font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;text-align:right}
+.connector-line{width:1px;height:16px;background:var(--border2);margin:0 auto}
+.s4-cta{padding:20px;margin-top:auto}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="wordmark-load">ping</div>
+  <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+</div>
+
+<div id="errorScreen">
+  <div class="error-box">
+    <h2>Link expired</h2>
+    <p>Invite links are single-use and expire after 48 hours. Ask your friend to send a new one.</p>
+  </div>
+</div>
+
+<div id="inviteFlow">
+  <div class="inv-header">
+    <div class="wordmark">ping</div>
+    <div class="step-counter" id="stepCounter"></div>
+  </div>
+
+  <!-- Step 0: Sender + overlap -->
+  <div class="step active" id="step0">
+    <div class="s0-body">
+      <div class="sender-strip">
+        <div class="sender-avi">👋</div>
+        <div class="sender-info">
+          <div class="sender-name" id="senderName">—</div>
+          <div class="sender-sub">
+            <span class="sdot" id="senderDot"></span>
+            <span id="senderTimeTz">—</span>
+          </div>
+        </div>
+      </div>
+
+      <h1 class="inv-headline" id="invHeadline">—</h1>
+
+      <div class="overlap-card">
+        <div class="oc-label">Your windows together</div>
+        <div>
+          <div class="hours-bar" id="hoursBar">
+            <div class="band band-s"  id="bandS"></div>
+            <div class="band band-r"  id="bandR"></div>
+            <div class="band band-ov" id="bandOv"></div>
+          </div>
+          <div class="hour-ticks" id="hourTicks"></div>
+        </div>
+        <div class="ov-legend" id="ovLegend"></div>
+        <div class="best-window" id="bestWindow" style="display:none">
+          <span class="bw-icon">✦</span>
+          <div class="bw-text" id="bestWindowText"></div>
+        </div>
+        <div class="no-overlap" id="noOverlap" style="display:none"></div>
+      </div>
+    </div>
+    <div class="s0-cta">
+      <button class="btn-primary" id="step0Btn">Add <span id="s0BtnName">them</span> to my circle</button>
+    </div>
+  </div>
+
+  <!-- Step 1: Name -->
+  <div class="step" id="step1">
+    <div class="s1-body">
+      <div>
+        <div class="step-eyebrow">Step 1 of 3</div>
+        <h2 class="step-headline">What should <em id="s1Ref" style="font-family:'Fraunces',serif;font-style:italic;color:var(--gold)">they</em> call you?</h2>
+        <p class="step-sub">This is all they'll see — pick something they'll recognise immediately.</p>
+      </div>
+      <div class="field">
+        <label for="nameInput">Your name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Yaow, Y, Yaow BKK" maxlength="32" autocomplete="given-name" autocapitalize="words">
+      </div>
+      <div class="field">
+        <label for="tzSelect">Your timezone</label>
+        <select id="tzSelect"></select>
+      </div>
+    </div>
+    <div class="s1-cta">
+      <button class="btn-primary" id="step1Btn" disabled>Continue</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Sleep + days -->
+  <div class="step" id="step2">
+    <div class="s2-body">
+      <div>
+        <div class="step-eyebrow">Step 2 of 3</div>
+        <h2 class="step-headline">When do you sleep?</h2>
+        <p class="step-sub">We'll never ping you during these hours. You can change this anytime.</p>
+      </div>
+      <div>
+        <div class="step-eyebrow" style="margin-bottom:10px">Quiet hours</div>
+        <div class="time-range">
+          <div class="field">
+            <label>I go to sleep</label>
+            <input type="time" id="sleepTime" value="23:00">
+          </div>
+          <div class="field">
+            <label>I wake up</label>
+            <input type="time" id="wakeTime" value="08:00">
+          </div>
+        </div>
+        <div class="quiet-preview" id="quietPreview" style="margin-top:10px"></div>
+      </div>
+      <div>
+        <div class="step-eyebrow" style="margin-bottom:10px">Available days</div>
+        <div class="day-grid" id="dayGrid"></div>
+      </div>
+    </div>
+    <div class="s2-cta">
+      <button class="btn-primary" id="step2Btn">Continue</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Best times -->
+  <div class="step" id="step3">
+    <div class="s3-body">
+      <div>
+        <div class="step-eyebrow">Step 3 of 3</div>
+        <h2 class="step-headline">When are you <em style="font-family:'Fraunces',serif;font-style:italic;color:var(--teal)">most likely</em> to call?</h2>
+        <p class="step-sub">Not a commitment — just a signal on your card so <span id="s3Ref">they</span> knows when to ping.</p>
+      </div>
+      <div class="tod-grid" id="todGrid"></div>
+      <div class="overlap-update" id="overlapUpdate"></div>
+    </div>
+    <div class="s3-cta">
+      <button class="btn-primary" id="step3Btn">Connect us</button>
+      <button class="btn-ghost" id="step3Skip">Skip, I'll do this later</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Success -->
+  <div class="step" id="step4">
+    <div class="s4-body">
+      <div class="success-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="ring-inner" id="successEmoji">🎉</div>
+      </div>
+      <div class="success-text">
+        <h2 id="successHeadline">You're connected</h2>
+        <p id="successBody"></p>
+      </div>
+      <div class="connected-pair">
+        <div class="connected-card">
+          <div class="mini-avi sa">👋</div>
+          <div class="conn-info">
+            <div class="conn-name" id="connSName">—</div>
+            <div class="conn-sub"  id="connSSub">—</div>
+          </div>
+          <div class="conn-window" id="connSWin"></div>
+        </div>
+        <div class="connector-line"></div>
+        <div class="connected-card">
+          <div class="mini-avi ra" id="connRAvi">🌙</div>
+          <div class="conn-info">
+            <div class="conn-name" id="connRName">—</div>
+            <div class="conn-sub"  id="connRSub">—</div>
+          </div>
+          <div class="conn-window" id="connRWin"></div>
+        </div>
+      </div>
+    </div>
+    <div class="s4-cta">
+      <button class="btn-primary" id="openAppBtn">Open my circle</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const TOD  = [
+  {id:'morning',   emoji:'🌅', label:'Morning',    sub:'Before noon'},
+  {id:'afternoon', emoji:'☀️',  label:'Afternoon', sub:'Noon–6pm'},
+  {id:'evening',   emoji:'🌆', label:'Evening',    sub:'6pm–10pm'},
+  {id:'night',     emoji:'🌙', label:'Late night', sub:'After 10pm'},
+];
+const TZ_LIST = [
+  'Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver',
+  'America/Chicago','America/New_York','America/Sao_Paulo','Europe/London',
+  'Europe/Paris','Europe/Berlin','Europe/Moscow','Asia/Dubai','Asia/Kolkata',
+  'Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo',
+  'Australia/Sydney','Pacific/Auckland',
+];
+
+// ── State ────────────────────────────────────────────────────────────
+const token   = location.pathname.split('/invite/')[1]?.split('/')[0];
+let senderData  = null;
+let recipTz     = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let recipName   = '';
+let selectedDays = new Set(DAYS);
+let bestTimes    = new Set();
+
+// ── Utils ────────────────────────────────────────────────────────────
+const localH = tz => parseInt(
+  new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',hour12:false}).format(new Date()), 10);
+
+const localLabel = tz =>
+  new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',hour12:true}).format(new Date());
+
+const statusOf = tz => {
+  const h = localH(tz);
+  if(h>=0&&h<8)  return 'asleep';
+  if(h>=8&&h<12) return 'morning';
+  if(h>=12&&h<17)return 'afternoon';
+  if(h>=17&&h<21)return 'evening';
+  return 'night';
+};
+
+const timeToH = t => { const [h,m]=t.split(':').map(Number); return h+m/60; };
+
+const hLabel = h => {
+  h = ((h%24)+24)%24;
+  const hh=Math.floor(h), p=hh>=12?'pm':'am', d=hh%12||12;
+  return `${d}${p}`;
+};
+
+// Offset: how many hours recipTz is ahead of senderTz
+function tzOffsetH(tzA, tzB) {
+  const now = new Date();
+  const toMs = tz => new Date(now.toLocaleString('en-US',{timeZone:tz})).getTime();
+  let diff = (toMs(tzB) - toMs(tzA)) / 3600000;
+  if(diff>12)diff-=24; if(diff<-12)diff+=24;
+  return diff;
+}
+
+// ── Overlap math ─────────────────────────────────────────────────────
+function computeOverlap(sTz, rTz, rWakeStr, rSleepStr) {
+  const sWake=8, sSleep=23; // sender defaults
+  const off = tzOffsetH(sTz, rTz);
+
+  // Recip awake in sender-local hours
+  const rWakeS  = ((timeToH(rWakeStr)  - off) % 24 + 24) % 24;
+  const rSleepS = ((timeToH(rSleepStr) - off) % 24 + 24) % 24;
+
+  const expand = (wake, sleep) =>
+    sleep > wake ? [[wake, sleep]] : [[wake,24],[0,sleep]];
+
+  const intersect = (as, bs) => {
+    const r = [];
+    for(const [a0,a1] of as) for(const [b0,b1] of bs){
+      const s=Math.max(a0,b0), e=Math.min(a1,b1);
+      if(e>s) r.push([s,e]);
+    }
+    return r;
+  };
+
+  const sSegs = expand(sWake, sSleep);
+  const rSegs = expand(rWakeS, rSleepS);
+  const overlap = intersect(sSegs, rSegs);
+
+  return {
+    sWake, sSleep, sSegs,
+    rWakeS, rSleepS, rSegs,
+    overlap,
+    totalH: overlap.reduce((a,[s,e])=>a+(e-s),0),
+    offset: off,
+  };
+}
+
+// ── Render overlap ───────────────────────────────────────────────────
+function pct(h){ return `${(h/24*100).toFixed(2)}%`; }
+
+function renderOverlap() {
+  if(!senderData) return;
+  const wake  = document.getElementById('wakeTime')?.value  || '08:00';
+  const sleep = document.getElementById('sleepTime')?.value || '23:00';
+  const ov = computeOverlap(senderData.timezone, recipTz, wake, sleep);
+
+  // Bar bands
+  const bs = document.getElementById('bandS');
+  bs.style.left  = pct(ov.sWake);
+  bs.style.width = pct(ov.sSleep - ov.sWake);
+
+  const br = document.getElementById('bandR');
+  const bigR = ov.rSegs.reduce((a,b)=>(b[1]-b[0])>(a[1]-a[0])?b:a);
+  br.style.left  = pct(bigR[0]);
+  br.style.width = pct(bigR[1]-bigR[0]);
+
+  if(ov.overlap.length){
+    const bo = document.getElementById('bandOv');
+    bo.style.left  = pct(ov.overlap[0][0]);
+    bo.style.width = pct(ov.overlap[0][1]-ov.overlap[0][0]);
+    bo.style.display = '';
+  } else {
+    document.getElementById('bandOv').style.display = 'none';
+  }
+
+  // Ticks
+  document.getElementById('hourTicks').innerHTML =
+    [0,6,12,18,24].map(h=>`<span class="tick">${hLabel(h)}</span>`).join('');
+
+  // Legend
+  const sWin   = `${hLabel(ov.sWake)}–${hLabel(ov.sSleep)}`;
+  const rWinLocal = `${hLabel(timeToH(wake))}–${hLabel(timeToH(sleep))}`;
+  let legHTML = `
+    <div class="legend-row">
+      <div class="lswatch s"></div>
+      <span class="legend-label">${senderData.name} · ${senderData.timezone.split('/').pop().replace(/_/g,' ')}</span>
+      <span class="legend-time">${sWin}</span>
+    </div>
+    <div class="legend-row">
+      <div class="lswatch r"></div>
+      <span class="legend-label">${recipName||'You'} · ${recipTz.split('/').pop().replace(/_/g,' ')}</span>
+      <span class="legend-time">${rWinLocal}</span>
+    </div>`;
+  if(ov.overlap.length){
+    const [s,e]=ov.overlap[0];
+    legHTML += `
+    <div class="legend-row">
+      <div class="lswatch ov"></div>
+      <span class="legend-label">Overlap</span>
+      <span class="legend-time">${hLabel(s)}–${hLabel(e)} ${senderData.timezone.split('/').pop().replace(/_/g,' ')}</span>
+    </div>`;
+  }
+  document.getElementById('ovLegend').innerHTML = legHTML;
+
+  // Best window callout
+  const bwEl = document.getElementById('bestWindow');
+  const noEl = document.getElementById('noOverlap');
+  if(ov.overlap.length && ov.totalH >= 0.5){
+    bwEl.style.display = 'flex';
+    noEl.style.display = 'none';
+    const [s,e] = ov.overlap[0];
+    const off = ov.offset;
+    const senderSide = `${hLabel(s)}–${hLabel(e)} ${senderData.timezone.split('/').pop().replace(/_/g,' ')}`;
+    const recipSide  = `${hLabel(((s+off)%24+24)%24)}–${hLabel(((e+off)%24+24)%24)} ${recipTz.split('/').pop().replace(/_/g,' ')}`;
+    const hrs = ov.totalH.toFixed(1);
+    document.getElementById('bestWindowText').innerHTML =
+      `<strong>${hrs}h overlap.</strong> ${senderData.name.split(' ')[0]}'s <strong>${senderSide}</strong> = your <strong>${recipSide}</strong>.`;
+  } else {
+    bwEl.style.display = 'none';
+    noEl.style.display = 'block';
+    noEl.textContent = `You're ${Math.abs(Math.round(ov.offset))}h apart with no overlapping awake hours. Pings queue and land when you're both up — still works, just more async.`;
+  }
+
+  return ov;
+}
+
+function updateOverlapMsg(ov) {
+  const el = document.getElementById('overlapUpdate');
+  if(!ov||!senderData){ el.textContent = 'Pick your best times above.'; return; }
+  const fname = senderData.name.split(' ')[0];
+  if(!bestTimes.size){
+    el.innerHTML = `Pick your best times above — we'll show how they line up with ${fname}.`;
+    return;
+  }
+  if(!ov.overlap.length){
+    el.innerHTML = `No direct overlap — pings queue and deliver when you're both awake. It still works.`;
+    return;
+  }
+  const [s,e] = ov.overlap[0];
+  const off = ov.offset;
+  const rS = hLabel(((s+off)%24+24)%24);
+  const rE = hLabel(((e+off)%24+24)%24);
+  const todH = {morning:[8,12],afternoon:[12,17],evening:[17,22],night:[22,26]};
+  let hit = false;
+  for(const tid of bestTimes){
+    const [ts,te] = todH[tid];
+    if(ts < timeToH(document.getElementById('sleepTime').value||'23:00') &&
+       te > timeToH(document.getElementById('wakeTime').value||'08:00')){ hit=true; break; }
+  }
+  el.innerHTML = hit
+    ? `✦ <strong>Good overlap</strong> — your best times include the window ${fname} can reach you (${rS}–${rE} your time).`
+    : `The shared window is <strong>${rS}–${rE} your time</strong>. That's when pings land instantly.`;
+}
+
+// ── Screen control ───────────────────────────────────────────────────
+let currentStep = 0;
+function showStep(n){
+  document.querySelectorAll('.step').forEach((s,i)=>s.classList.toggle('active',i===n));
+  currentStep = n;
+  document.getElementById('stepCounter').textContent = n===0?'':`${n} / 3`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showLoading(){
+  document.getElementById('loadingScreen').style.display='flex';
+  document.getElementById('errorScreen').style.display='none';
+  document.getElementById('inviteFlow').style.display='none';
+}
+function showError(){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('errorScreen').style.display='flex';
+  document.getElementById('inviteFlow').style.display='none';
+}
+function showFlow(){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('errorScreen').style.display='none';
+  document.getElementById('inviteFlow').style.display='flex';
+}
+
+// ── Timezone select ──────────────────────────────────────────────────
+function populateTz(){
+  const sel = document.getElementById('tzSelect');
+  const detected = recipTz;
+  const all = TZ_LIST.includes(detected)?TZ_LIST:[detected,...TZ_LIST];
+  all.forEach(tz=>{
+    const opt = document.createElement('option');
+    opt.value = tz;
+    opt.textContent = `${tz.replace(/_/g,' ')} · ${localLabel(tz)}`;
+    if(tz===detected) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change',()=>{ recipTz=sel.value; renderOverlap(); });
+}
+
+// ── Day grid ─────────────────────────────────────────────────────────
+function buildDayGrid(){
+  document.getElementById('dayGrid').innerHTML='';
+  DAYS.forEach(d=>{
+    const chip=document.createElement('div');
+    chip.className='day-chip on'; chip.textContent=d[0]; chip.dataset.day=d;
+    chip.addEventListener('click',()=>{
+      if(selectedDays.has(d)){selectedDays.delete(d);chip.classList.remove('on');}
+      else{selectedDays.add(d);chip.classList.add('on');}
+    });
+    document.getElementById('dayGrid').appendChild(chip);
+  });
+}
+
+// ── Quiet preview ────────────────────────────────────────────────────
+function updateQuietPreview(){
+  const s=document.getElementById('sleepTime').value;
+  const w=document.getElementById('wakeTime').value;
+  document.getElementById('quietPreview').innerHTML=
+    `No pings from <strong>${hLabel(timeToH(s))}</strong> to <strong>${hLabel(timeToH(w))}</strong> your time. Friends see 🌙 on your card.`;
+  renderOverlap();
+}
+
+// ── TOD grid ─────────────────────────────────────────────────────────
+function buildTodGrid(){
+  document.getElementById('todGrid').innerHTML='';
+  TOD.forEach(t=>{
+    const chip=document.createElement('div');
+    chip.className='tod-chip';
+    chip.innerHTML=`<div class="tod-emoji">${t.emoji}</div><div class="tod-label">${t.label}</div><div class="tod-sub">${t.sub}</div>`;
+    chip.addEventListener('click',()=>{
+      if(bestTimes.has(t.id)){bestTimes.delete(t.id);chip.classList.remove('on');}
+      else{bestTimes.add(t.id);chip.classList.add('on');}
+      const sleep=document.getElementById('sleepTime').value;
+      const wake=document.getElementById('wakeTime').value;
+      const ov=computeOverlap(senderData.timezone,recipTz,wake,sleep);
+      updateOverlapMsg(ov);
+    });
+    document.getElementById('todGrid').appendChild(chip);
+  });
+}
+
+// ── Accept ───────────────────────────────────────────────────────────
+async function acceptInvite(){
+  const btn=document.getElementById('step3Btn');
+  btn.disabled=true; btn.textContent='Connecting…';
+  const sleep=document.getElementById('sleepTime').value;
+  const wake=document.getElementById('wakeTime').value;
+  const schedule=DAYS.reduce((acc,d)=>{
+    acc[d]={available:selectedDays.has(d),start:wake,end:sleep,bestTimes:[...bestTimes]};
+    return acc;
+  },{});
+  try{
+    const res=await fetch(`/api/invites/${token}/accept`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:recipName,timezone:recipTz,schedule}),
+    });
+    const data=await res.json();
+    if(!res.ok){showError();return;}
+    localStorage.setItem('pingUserId',data.userId);
+    localStorage.setItem('pingDisplayName',recipName);
+    localStorage.setItem('pingTz',recipTz);
+    renderSuccess(data,sleep,wake);
+    showStep(4);
+  }catch(e){
+    btn.disabled=false; btn.textContent='Connect us';
+  }
+}
+
+function renderSuccess(data,sleep,wake){
+  const fname=senderData.name.split(' ')[0];
+  document.getElementById('successHeadline').textContent=`You and ${fname} are connected`;
+  document.getElementById('successBody').textContent=`${fname}'s card is on your circle now. Tap it to send a ping anytime.`;
+  document.getElementById('connSName').textContent=senderData.name;
+  document.getElementById('connSSub').textContent=localLabel(senderData.timezone);
+  document.getElementById('connRName').textContent=recipName;
+  document.getElementById('connRSub').textContent=localLabel(recipTz);
+  const initials=['🌸','🌊','⚡','🌿','🔥','🌙','☀️','🎵','🌺','🦋'];
+  document.getElementById('connRAvi').textContent=initials[recipName.charCodeAt(0)%initials.length];
+  const ov=computeOverlap(senderData.timezone,recipTz,wake,sleep);
+  if(ov.overlap.length){
+    const[s,e]=ov.overlap[0], off=ov.offset;
+    document.getElementById('connSWin').textContent=`${hLabel(s)}–${hLabel(e)}`;
+    document.getElementById('connRWin').textContent=`${hLabel(((s+off)%24+24)%24)}–${hLabel(((e+off)%24+24)%24)}`;
+  }
+}
+
+// ── Step wiring ──────────────────────────────────────────────────────
+document.getElementById('step0Btn').addEventListener('click',()=>showStep(1));
+const nameInput=document.getElementById('nameInput');
+const step1Btn=document.getElementById('step1Btn');
+nameInput.addEventListener('input',()=>{ step1Btn.disabled=nameInput.value.trim().length===0; });
+step1Btn.addEventListener('click',()=>{
+  recipName=nameInput.value.trim();
+  if(!recipName)return;
+  showStep(2);
+});
+document.getElementById('step2Btn').addEventListener('click',()=>showStep(3));
+document.getElementById('step3Btn').addEventListener('click',acceptInvite);
+document.getElementById('step3Skip').addEventListener('click',acceptInvite);
+document.getElementById('sleepTime').addEventListener('change',updateQuietPreview);
+document.getElementById('wakeTime').addEventListener('change',updateQuietPreview);
+document.getElementById('openAppBtn').addEventListener('click',()=>{ window.location.href='/'; });
+
+// ── Init ─────────────────────────────────────────────────────────────
+async function init(){
+  if(!token){showError();return;}
+  try{
+    const res=await fetch(`/api/invites/${token}`);
+    if(!res.ok){showError();return;}
+    const data=await res.json();
+    senderData=data.sender;
+
+    const fname=senderData.name.split(' ')[0];
+    document.getElementById('senderName').textContent=senderData.name;
+    const st=statusOf(senderData.timezone);
+    document.getElementById('senderDot').className=`sdot ${st}`;
+    document.getElementById('senderTimeTz').textContent=
+      `${localLabel(senderData.timezone)} · ${senderData.timezone.split('/').pop().replace(/_/g,' ')}`;
+    document.getElementById('invHeadline').innerHTML=`<em>${fname}</em> wants you in their inner circle.`;
+    document.getElementById('s0BtnName').textContent=fname;
+    document.getElementById('s1Ref').textContent=fname;
+    document.getElementById('s3Ref').textContent=fname;
+
+    populateTz();
+    buildDayGrid();
+    buildTodGrid();
+    updateQuietPreview();
+    renderOverlap();
+    const ov=computeOverlap(senderData.timezone,recipTz,'08:00','23:00');
+    updateOverlapMsg(ov);
+
+    showFlow();
+    showStep(0);
+  }catch(e){showError();}
+}
+init();
+</script>
+</body>
+</html>

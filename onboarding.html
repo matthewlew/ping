@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ping — setup</title>
+<meta name="theme-color" content="#0c0c0e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
+  --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--red:#ff6b6b;--r:18px;
+}
+html{background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh}
+
+.screen{display:none;min-height:100dvh;flex-direction:column}
+.screen.active{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Shared buttons ── */
+.btn-p{width:100%;background:var(--accent);color:#0c0c0e;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s}
+.btn-p:active{opacity:.85} .btn-p:disabled{opacity:.35;cursor:default}
+.btn-g{width:100%;background:none;border:1px solid var(--border2);border-radius:14px;padding:14px;font-size:15px;color:var(--muted2);font-family:'DM Sans',sans-serif;cursor:pointer;transition:border-color .15s}
+.btn-g:active{border-color:var(--border2);color:var(--text)}
+
+/* ── Fields ── */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{width:100%;padding:14px 15px;background:var(--surf2);border:1px solid var(--border2);border-radius:13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+.field input::placeholder{color:var(--muted)} .field input:focus,.field select:focus{border-color:rgba(255,255,255,.22)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.field select option{background:#1a1a24}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.time-row input[type=time]{font-family:'DM Mono',monospace;font-size:17px;text-align:center;padding:13px 8px}
+
+/* ─────────────────────────────────────────────────────────
+   WELCOME SCREEN
+───────────────────────────────────────────────────────── */
+#welcomeScreen{padding:0 0 calc(32px + env(safe-area-inset-bottom,0px))}
+.w-hero{padding:max(env(safe-area-inset-top,0px),52px) 22px 28px;display:flex;flex-direction:column;gap:7px}
+.w-eyebrow{font-size:12px;font-weight:500;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.w-headline{font-family:'Fraunces',serif;font-size:30px;font-weight:300;line-height:1.2;letter-spacing:-.4px}
+.w-headline em{font-style:italic;color:var(--accent)}
+.w-sub{font-size:15px;color:var(--muted2);line-height:1.5;margin-top:2px}
+
+.data-section{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.data-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:16px 17px}
+.dc-label{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.dc-rows{display:flex;flex-direction:column;gap:8px}
+.dc-row{display:flex;align-items:flex-start;gap:10px}
+.dc-icon{font-size:14px;flex-shrink:0;margin-top:2px}
+.dc-text{font-size:13px;color:var(--muted2);line-height:1.45}
+.dc-text strong{color:var(--text);font-weight:500}
+.data-card.never{border-color:rgba(200,245,96,.1);background:rgba(200,245,96,.03)}
+.data-card.never .dc-text{color:rgba(200,245,96,.55)} .data-card.never .dc-text strong{color:var(--accent)}
+.data-card.delete-info{border-color:rgba(255,107,107,.1);background:rgba(255,107,107,.03)}
+.data-card.delete-info .dc-text{color:rgba(255,150,150,.6)} .data-card.delete-info .dc-text strong{color:#ff9090}
+
+.w-cta{padding:22px 16px 0;display:flex;flex-direction:column;gap:9px}
+
+/* ─────────────────────────────────────────────────────────
+   NAME SCREEN
+───────────────────────────────────────────────────────── */
+#nameScreen{padding:max(env(safe-area-inset-top,0px),52px) 22px calc(40px + env(safe-area-inset-bottom,0px));gap:28px}
+.n-header h2{font-family:'Fraunces',serif;font-size:26px;font-weight:300;letter-spacing:-.3px;margin-bottom:6px}
+.n-header p{font-size:14px;color:var(--muted2);line-height:1.5}
+.n-form{display:flex;flex-direction:column;gap:12px;flex:1}
+.n-cta{margin-top:auto}
+
+/* ─────────────────────────────────────────────────────────
+   SETTINGS SCREEN
+───────────────────────────────────────────────────────── */
+#settingsScreen{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.s-header{display:flex;align-items:center;gap:12px;padding:max(env(safe-area-inset-top,0px),20px) 16px 12px;border-bottom:1px solid var(--border)}
+.back-btn{width:36px;height:36px;border-radius:10px;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.s-header h2{font-size:18px;font-weight:600}
+
+.s-section{padding:0 16px;margin-top:20px}
+.s-eyebrow{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding:0 2px}
+.s-group{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.s-row{display:flex;align-items:center;gap:12px;padding:14px 15px;border-bottom:1px solid var(--border)}
+.s-row:last-child{border-bottom:none}
+.s-icon{font-size:17px;flex-shrink:0}
+.s-label{flex:1} .s-label strong{font-size:14px;font-weight:500;display:block} .s-label span{font-size:12px;color:var(--muted2)}
+.s-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-chev{color:var(--muted);font-size:13px}
+
+.store-summary{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:15px;display:flex;flex-direction:column;gap:9px}
+.store-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.store-key{font-size:12px;color:var(--muted2)}
+.store-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);text-align:right;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-val.good{color:var(--accent)} .store-val.dim{color:var(--muted);font-style:italic}
+
+.danger-card{background:rgba(255,107,107,.04);border:1px solid rgba(255,107,107,.18);border-radius:var(--r);padding:15px;display:flex;flex-direction:column;gap:11px}
+.danger-card p{font-size:12px;color:rgba(255,150,150,.65);line-height:1.5}
+.btn-danger{background:none;border:1px solid rgba(255,107,107,.35);border-radius:12px;padding:12px;font-size:14px;font-weight:500;color:var(--red);font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s}
+.btn-danger:active{background:rgba(255,107,107,.08)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--surf);border:1px solid var(--border2);border-radius:var(--r);padding:22px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;transform:translateY(20px);transition:transform .25s ease}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal h3{font-size:17px;font-weight:600}
+.modal p{font-size:13px;color:var(--muted2);line-height:1.6}
+.modal-btns{display:flex;flex-direction:column;gap:7px}
+</style>
+</head>
+<body>
+
+<!-- Welcome -->
+<div id="welcomeScreen" class="screen">
+  <div class="w-hero">
+    <div class="w-eyebrow">ping</div>
+    <h1 class="w-headline">Before we start,<br><em>here's what we hold.</em></h1>
+    <p class="w-sub">No account. No password. Read this once — it's short.</p>
+  </div>
+  <div class="data-section">
+    <div class="data-card">
+      <div class="dc-label">What we store</div>
+      <div class="dc-rows">
+        <div class="dc-row"><span class="dc-icon">◉</span><span class="dc-text"><strong>Display name</strong> — what your friends see. You set it.</span></div>
+        <div class="dc-row"><span class="dc-icon">◷</span><span class="dc-text"><strong>Timezone + sleep schedule</strong> — so we know when to hold pings.</span></div>
+        <div class="dc-row"><span class="dc-icon">⌁</span><span class="dc-text"><strong>Push endpoint</strong> — a token your browser generates. We use it to deliver notifications. We never see your device ID.</span></div>
+        <div class="dc-row"><span class="dc-icon">◌</span><span class="dc-text"><strong>Last active date</strong> — an ambient signal for your friends' cards, not a log.</span></div>
+      </div>
+    </div>
+    <div class="data-card never">
+      <div class="dc-label">What we never store</div>
+      <div class="dc-rows">
+        <div class="dc-row"><span class="dc-icon">✕</span><span class="dc-text"><strong>No email</strong> or phone number</span></div>
+        <div class="dc-row"><span class="dc-icon">✕</span><span class="dc-text"><strong>No message content</strong> — pings are routing signals, not messages</span></div>
+        <div class="dc-row"><span class="dc-icon">✕</span><span class="dc-text"><strong>No call transcripts</strong> — only "you last connected on [date]"</span></div>
+        <div class="dc-row"><span class="dc-icon">✕</span><span class="dc-text"><strong>No analytics</strong>, no ads, no third-party SDKs</span></div>
+      </div>
+    </div>
+    <div class="data-card delete-info">
+      <div class="dc-label">If you leave</div>
+      <div class="dc-rows">
+        <div class="dc-row"><span class="dc-icon">↩</span><span class="dc-text">Delete the app → push subscription <strong>expires automatically</strong>.</span></div>
+        <div class="dc-row"><span class="dc-icon">✕</span><span class="dc-text"><strong>Settings → Delete my data</strong> removes everything instantly. Irreversible.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="w-cta">
+    <button class="btn-p" id="welcomeContinueBtn">Got it — set up my name</button>
+    <button class="btn-g" id="welcomeSkipBtn">I've been here before</button>
+  </div>
+</div>
+
+<!-- Name setup -->
+<div id="nameScreen" class="screen">
+  <div class="n-header">
+    <h2>What should friends call you?</h2>
+    <p>This is the only thing they'll see. Pick something they'll recognise.</p>
+  </div>
+  <div class="n-form">
+    <div class="field">
+      <label for="displayName">Display name</label>
+      <input type="text" id="displayName" placeholder="e.g. Matt, M, Matt NYC" maxlength="32" autocomplete="given-name" autocapitalize="words">
+    </div>
+    <div class="field">
+      <label for="tzSelect">Your timezone</label>
+      <select id="tzSelect"></select>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Quiet hours — no pings during these times</div>
+      <div class="time-row">
+        <div class="field"><label>I sleep at</label><input type="time" id="sleepTime" value="23:00"></div>
+        <div class="field"><label>I wake at</label><input type="time" id="wakeTime" value="08:00"></div>
+      </div>
+    </div>
+  </div>
+  <div class="n-cta">
+    <button class="btn-p" id="nameContinueBtn" disabled>Open my circle</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settingsScreen" class="screen">
+  <div class="s-header">
+    <button class="back-btn" id="settingsBackBtn">←</button>
+    <h2>Settings</h2>
+  </div>
+
+  <div class="s-section">
+    <div class="s-eyebrow">Your info</div>
+    <div class="s-group">
+      <div class="s-row" id="editNameRow" style="cursor:pointer">
+        <span class="s-icon">◉</span>
+        <div class="s-label"><strong>Display name</strong><span>What friends see</span></div>
+        <span class="s-val" id="sName">—</span>
+        <span class="s-chev">›</span>
+      </div>
+      <div class="s-row">
+        <span class="s-icon">◷</span>
+        <div class="s-label"><strong>Timezone</strong><span>Used for quiet hours</span></div>
+        <span class="s-val" id="sTz">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section" style="margin-top:12px">
+    <div class="s-eyebrow">What's stored about you</div>
+    <div class="store-summary">
+      <div class="store-row"><span class="store-key">Name</span><span class="store-val" id="svName">—</span></div>
+      <div class="store-row"><span class="store-key">Timezone</span><span class="store-val" id="svTz">—</span></div>
+      <div class="store-row"><span class="store-key">Email / phone</span><span class="store-val good">none</span></div>
+      <div class="store-row"><span class="store-key">Message content</span><span class="store-val good">none</span></div>
+      <div class="store-row"><span class="store-key">Push endpoint</span><span class="store-val dim">browser-generated token</span></div>
+      <div class="store-row"><span class="store-key">Last active</span><span class="store-val" id="svLastSeen">today</span></div>
+    </div>
+  </div>
+
+  <div class="s-section" style="margin-top:12px">
+    <div class="s-eyebrow">Danger zone</div>
+    <div class="danger-card">
+      <p>Removes your name, timezone, push token, and all friendships from the server instantly. Your friends see "inactive." This cannot be undone.</p>
+      <button class="btn-danger" id="deleteDataBtn">Delete my data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <h3>Delete everything?</h3>
+    <p>Your name, timezone, push token, and all friendships will be removed immediately. Your friends will see "may be inactive" on your card.</p>
+    <div class="modal-btns">
+      <button class="btn-danger" id="confirmDeleteBtn">Yes, delete my data</button>
+      <button class="btn-g" id="cancelDeleteBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TZ_LIST=['Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver','America/Chicago','America/New_York','America/Sao_Paulo','Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'];
+const ME = localStorage.getItem('pingUserId') || 'user-demo-a';
+let profile = { name: localStorage.getItem('pingDisplayName')||'', timezone: localStorage.getItem('pingTz')|| Intl.DateTimeFormat().resolvedOptions().timeZone };
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id)); }
+
+function populateTz(selId){
+  const sel=document.getElementById(selId); sel.innerHTML='';
+  const detected=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const all=TZ_LIST.includes(detected)?TZ_LIST:[detected,...TZ_LIST];
+  all.forEach(tz=>{
+    const now=new Date();
+    const t=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',hour12:true}).format(now);
+    const o=document.createElement('option');
+    o.value=tz; o.textContent=`${tz.replace(/_/g,' ')} · ${t}`;
+    if(tz===detected||tz===profile.timezone)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+// ── Welcome ──────────────────────────────────────────────────────────
+document.getElementById('welcomeContinueBtn').addEventListener('click',()=>{
+  populateTz('tzSelect');
+  if(profile.name){ document.getElementById('displayName').value=profile.name; document.getElementById('nameContinueBtn').disabled=false; }
+  show('nameScreen');
+});
+document.getElementById('welcomeSkipBtn').addEventListener('click',()=>{ window.location.href='/'; });
+
+// ── Name screen ───────────────────────────────────────────────────────
+const nameInput=document.getElementById('displayName');
+const nameContinueBtn=document.getElementById('nameContinueBtn');
+nameInput.addEventListener('input',()=>{ nameContinueBtn.disabled=nameInput.value.trim().length===0; });
+
+nameContinueBtn.addEventListener('click',async()=>{
+  const name=nameInput.value.trim(); if(!name)return;
+  const tz=document.getElementById('tzSelect').value;
+  const sleep=document.getElementById('sleepTime').value;
+  const wake=document.getElementById('wakeTime').value;
+  nameContinueBtn.disabled=true; nameContinueBtn.textContent='Saving…';
+
+  // Build 7-day schedule from sleep/wake times
+  const schedule=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].reduce((acc,d)=>{
+    acc[d]={available:true,start:wake,end:sleep}; return acc;
+  },{});
+
+  localStorage.setItem('pingDisplayName',name);
+  localStorage.setItem('pingTz',tz);
+  profile={name,timezone:tz};
+
+  try{
+    await fetch(`/api/users/${ME}`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,timezone:tz,schedule}),
+    });
+  }catch{}
+  window.location.href='/';
+});
+
+// ── Settings ──────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('sName').textContent=profile.name||'—';
+  document.getElementById('sTz').textContent=(profile.timezone||'').split('/').pop().replace(/_/g,' ');
+  document.getElementById('svName').textContent=profile.name||'—';
+  document.getElementById('svTz').textContent=profile.timezone||'—';
+  document.getElementById('svLastSeen').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  show('settingsScreen');
+}
+document.getElementById('settingsBackBtn').addEventListener('click',()=>{ window.location.href='/'; });
+document.getElementById('editNameRow').addEventListener('click',()=>{ populateTz('tzSelect'); show('nameScreen'); });
+
+// ── Delete ────────────────────────────────────────────────────────────
+document.getElementById('deleteDataBtn').addEventListener('click',()=>{ document.getElementById('deleteModal').classList.add('open'); });
+document.getElementById('cancelDeleteBtn').addEventListener('click',()=>{ document.getElementById('deleteModal').classList.remove('open'); });
+
+document.getElementById('confirmDeleteBtn').addEventListener('click',async()=>{
+  const btn=document.getElementById('confirmDeleteBtn');
+  btn.disabled=true; btn.textContent='Deleting…';
+  try{ await fetch(`/api/users/${ME}`,{method:'DELETE'}); }catch{}
+  localStorage.removeItem('pingUserId'); localStorage.removeItem('pingDisplayName'); localStorage.removeItem('pingTz');
+  if('serviceWorker'in navigator){
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(reg){ const sub=await reg.pushManager.getSubscription(); if(sub)await sub.unsubscribe(); }
+  }
+  document.getElementById('deleteModal').innerHTML=`<div class="modal" style="text-align:center;gap:14px"><div style="font-size:36px">✓</div><h3>Data deleted</h3><p style="color:var(--muted2);font-size:13px">Everything's been removed. Thanks for being here.</p></div>`;
+  document.getElementById('deleteModal').classList.add('open');
+  setTimeout(()=>{ window.location.href='/onboarding.html'; },2000);
+});
+
+// ── Entry ─────────────────────────────────────────────────────────────
+const params=new URLSearchParams(location.search);
+if(params.has('settings')) openSettings();
+else show('welcomeScreen');
+</script>
+</body>
+</html>
