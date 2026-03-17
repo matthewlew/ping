@@ -284,7 +284,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 const TZ_LIST=['Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver','America/Chicago','America/New_York','America/Sao_Paulo','Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'];
-const ME = localStorage.getItem('pingUserId') || 'user-demo-a';
+const ME = localStorage.getItem('pingUserId') || (() => {
+  const newId = 'user-' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('pingUserId', newId);
+  return newId;
+})();
 let profile = { name: localStorage.getItem('pingDisplayName')||'', timezone: localStorage.getItem('pingTz')|| Intl.DateTimeFormat().resolvedOptions().timeZone };
 
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id)); }
