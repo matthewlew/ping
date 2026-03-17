@@ -1,5 +1,6 @@
 import express from 'express';
 import webpush from 'web-push';
+import 'dotenv/config';
 import { randomUUID } from 'crypto';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
