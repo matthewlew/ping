@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
@@ -182,7 +183,9 @@ app.post('/api/invites/create', (req, res) => {
   const token     = randomUUID().replace(/-/g, '').slice(0, 16);
   const expiresAt = Date.now() + 48 * 3600 * 1000;
   db.invites.set(token, { token, senderId: sender.id, expiresAt, usedAt: null, usedBy: null });
-  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const proto = req.get('x-forwarded-proto') || req.protocol;
+  const host  = req.get('x-forwarded-host') || req.get('host');
+  const base  = process.env.BASE_URL || `${proto}://${host}`;
   res.json({ token, url: `${base}/invite/${token}`, expiresAt });
 });
 
