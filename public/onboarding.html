@@ -14,7 +14,7 @@
   color-scheme: light dark;
   --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
+  --text:#eeeef2;--muted:rgba(238,238,242,0.6);--muted2:rgba(238,238,242,0.75);
   --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--red:#ff6b6b;--r:18px;
   --btn-p-text:#0c0c0e;
   --input-focus:rgba(255,255,255,.22);
@@ -38,7 +38,7 @@
   :root {
     --bg:#fcfcfc;--surf:#ffffff;--surf2:#f5f5f5;
     --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
-    --text:#111111;--muted:rgba(0,0,0,0.45);--muted2:rgba(0,0,0,0.65);
+    --text:#111111;--muted:rgba(0,0,0,0.6);--muted2:rgba(0,0,0,0.75);
     --accent:#427800;--accent-d:rgba(66,120,0,0.1);--red:#c40000;
     --btn-p-text:#ffffff;
     --input-focus:rgba(0,0,0,.22);
@@ -111,6 +111,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
    NAME SCREEN
 ───────────────────────────────────────────────────────── */
 #nameScreen{padding:max(env(safe-area-inset-top,0px),52px) 22px calc(40px + env(safe-area-inset-bottom,0px));gap:28px}
+.n-header{display:flex;align-items:flex-start;gap:12px}
 .n-header h2{font-family:'Fraunces',serif;font-size:26px;font-weight:300;letter-spacing:-.3px;margin-bottom:6px}
 .n-header p{font-size:14px;color:var(--muted2);line-height:1.5}
 .n-form{display:flex;flex-direction:column;gap:12px;flex:1}
@@ -200,8 +201,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- Name setup -->
 <div id="nameScreen" class="screen">
   <div class="n-header">
-    <h2>What should friends call you?</h2>
-    <p>This is the only thing they'll see. Pick something they'll recognise.</p>
+    <button class="back-btn" id="nameBackBtn">←</button>
+    <div>
+      <h2>What should friends call you?</h2>
+      <p>This is the only thing they'll see. Pick something they'll recognise.</p>
+    </div>
   </div>
   <div class="n-form">
     <div class="field">
@@ -315,6 +319,8 @@ document.getElementById('welcomeSkipBtn').addEventListener('click',()=>{ window.
 const nameInput=document.getElementById('displayName');
 const nameContinueBtn=document.getElementById('nameContinueBtn');
 nameInput.addEventListener('input',()=>{ nameContinueBtn.disabled=nameInput.value.trim().length===0; });
+
+document.getElementById('nameBackBtn').addEventListener('click',()=>{ show('welcomeScreen'); });
 
 nameContinueBtn.addEventListener('click',async()=>{
   const name=nameInput.value.trim(); if(!name)return;
