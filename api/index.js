@@ -62,18 +62,7 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   console.warn('⚠ VAPID keys missing. Push notifications will not work.');
 }
 
-// ─── IN-MEMORY STORE ──────────────────────────────────────────────────────────
-// Swap Maps for Supabase tables when ready — schema is 1:1
-const db = {
-  users:       new Map(), // id → User
-  friendships: new Map(), // `${a}:${b}` → Friendship
-  invites:     new Map(), // token → Invite
-  calls:       new Map(), // id → Call
-};
-
-// Seed one demo user so the main app isn't empty on first load
-const DEMO_ID = 'user-demo-a';
-db.users.set(DEMO_ID, mkUser(DEMO_ID, 'You', 'America/New_York', '🌊', 'blob'));
+// ─── IN-MEMORY STORE (DEPRECATED - NOW USING REDIS) ──────────────────────────
 
 function mkUser(id, name, timezone, avatar = '👋', avatarShape = 'circle') {
   return {
