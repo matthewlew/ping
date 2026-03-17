@@ -146,12 +146,16 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 
 <div class="bottom-nav">
   <button class="nav-btn active"><span class="nav-icon">⌂</span><span>Friends</span></button>
-  <button class="nav-btn"><span class="nav-icon">◷</span><span>History</span></button>
+  <button class="nav-btn" id="historyBtn"><span class="nav-icon">◷</span><span>History</span></button>
   <button class="nav-btn" id="notifBtn"><span class="nav-icon">⌁</span><span id="notifBtnText">Notify</span></button>
 </div>
 
 <script>
-const ME = localStorage.getItem('pingUserId') || 'user-demo-a';
+const ME = localStorage.getItem('pingUserId') || (() => {
+  const newId = 'user-' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('pingUserId', newId);
+  return newId;
+})();
 const TOD_ICON = {morning:'☀',afternoon:'⛅',evening:'🌆',night:'🌙'};
 let friends = [];
 
@@ -304,6 +308,7 @@ document.getElementById('notifBtn').addEventListener('click',async()=>{
   }
 });
 document.getElementById('refreshBtn').addEventListener('click',loadFriends);
+document.getElementById('historyBtn').addEventListener('click',()=>toast('◷','History','Coming soon!',''));
 document.getElementById('profileBtn').addEventListener('click',()=>{window.location.href='/onboarding.html?settings';});
 
 function toast(icon,title,msg,type){
