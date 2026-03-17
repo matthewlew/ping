@@ -117,16 +117,22 @@ app.get('/api/vapid-public-key', (_req, res) => res.json({ key: VAPID_PUBLIC }))
 
 // Heartbeat — keeps lastSeen fresh; drives the "app installed" heuristic
 app.post('/api/heartbeat', (req, res) => {
-  const user = db.users.get(req.body.userId);
-  if (!user) return res.status(404).end();
+  let user = db.users.get(req.body.userId);
+  if (!user) {
+    user = mkUser(req.body.userId, 'You', 'America/New_York');
+    db.users.set(req.body.userId, user);
+  }
   user.lastSeen = Date.now();
   res.json({ ok: true });
 });
 
 // Push subscription
 app.post('/api/push/subscribe', (req, res) => {
-  const user = db.users.get(req.body.userId);
-  if (!user) return res.status(404).json({ error: 'not found' });
+  let user = db.users.get(req.body.userId);
+  if (!user) {
+    user = mkUser(req.body.userId, 'You', 'America/New_York');
+    db.users.set(req.body.userId, user);
+  }
   user.pushSub  = req.body.subscription;
   user.lastSeen = Date.now();
   db.friendships.forEach(f => {
@@ -138,8 +144,12 @@ app.post('/api/push/subscribe', (req, res) => {
 
 // Update profile (name, timezone, schedule, bestTimes)
 app.patch('/api/users/:userId', (req, res) => {
-  const user = db.users.get(req.params.userId);
-  if (!user) return res.status(404).json({ error: 'not found' });
+  let user = db.users.get(req.params.userId);
+  if (!user) {
+    // Auto-create if missing (e.g. server restart)
+    user = mkUser(req.params.userId, 'You', 'America/New_York');
+    db.users.set(req.params.userId, user);
+  }
   const { name, timezone, schedule, bestTimes, avatar, avatarShape } = req.body;
   if (name)        user.name        = String(name).slice(0, 32);
   if (timezone)    user.timezone    = String(timezone);
@@ -163,8 +173,12 @@ app.delete('/api/users/:userId', (req, res) => {
 
 // ── INVITES ───────────────────────────────────────────────────────────────────
 app.post('/api/invites/create', (req, res) => {
-  const sender = db.users.get(req.body.senderId);
-  if (!sender) return res.status(404).json({ error: 'not found' });
+  let sender = db.users.get(req.body.senderId);
+  if (!sender) {
+    // Auto-create if missing (e.g. server restart)
+    sender = mkUser(req.body.senderId, 'You', 'America/New_York');
+    db.users.set(req.body.senderId, sender);
+  }
   const token     = randomUUID().replace(/-/g, '').slice(0, 16);
   const expiresAt = Date.now() + 48 * 3600 * 1000;
   db.invites.set(token, { token, senderId: sender.id, expiresAt, usedAt: null, usedBy: null });
@@ -241,7 +255,9 @@ app.post('/api/invites/:token/accept', async (req, res) => {
 // ── FRIENDS ───────────────────────────────────────────────────────────────────
 app.get('/api/friends/:userId', (req, res) => {
   const { userId } = req.params;
-  if (!db.users.has(userId)) return res.status(404).json({ error: 'not found' });
+  if (!db.users.has(userId)) {
+    db.users.set(userId, mkUser(userId, 'You', 'America/New_York'));
+  }
 
   const friends = [];
   db.friendships.forEach((f, key) => {
@@ -363,9 +379,9 @@ app.get('/api/calls/:callId', (req, res) => {
 });
 
 // ─── PAGE ROUTES ──────────────────────────────────────────────────────────────
-app.get('/invite/{*path}', (_req, res) => res.sendFile(join(__dirname, 'public', 'invite.html')));
+app.get(/^\/invite\/.*/, (_req, res) => res.sendFile(join(__dirname, 'public', 'invite.html')));
 app.get('/onboarding.html', (_req, res) => res.sendFile(join(__dirname, 'public', 'onboarding.html')));
-app.get('/{*path}', (_req, res) => res.sendFile(join(__dirname, 'public', 'index.html')));
+app.get(/.*/, (_req, res) => res.sendFile(join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`ping → http://localhost:${PORT}`));
