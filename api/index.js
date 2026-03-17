@@ -14,10 +14,20 @@ app.use(express.static(join(__dirname, '..', 'public')));
 // ─── VAPID ────────────────────────────────────────────────────────────────────
 // Generate once: npx web-push generate-vapid-keys
 // Set env: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, BASE_URL
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'YOUR_VAPID_PUBLIC_KEY';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'YOUR_VAPID_PRIVATE_KEY';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT     || 'mailto:you@example.com';
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:you@example.com';
+
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+    console.log('✓ VAPID keys initialized');
+  } catch (err) {
+    console.error('✗ Failed to set VAPID details:', err.message);
+  }
+} else {
+  console.warn('⚠ VAPID keys missing. Push notifications will not work.');
+}
 
 // ─── IN-MEMORY STORE ──────────────────────────────────────────────────────────
 // Swap Maps for Supabase tables when ready — schema is 1:1
@@ -113,6 +123,10 @@ async function sendPush(userId, payload) {
 }
 
 // ─── API ROUTES ───────────────────────────────────────────────────────────────
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), env: process.env.NODE_ENV, vercel: !!process.env.VERCEL });
+});
 
 // Config
 app.get('/api/vapid-public-key', (_req, res) => res.json({ key: VAPID_PUBLIC }));
