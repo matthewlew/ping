@@ -1,6 +1,8 @@
 import express from 'express';
 import webpush from 'web-push';
 import 'dotenv/config';
+import jwt from 'jsonwebtoken';
+import { Redis } from '@upstash/redis';
 import { randomUUID } from 'crypto';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +12,34 @@ const app = express();
 app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.static(join(__dirname, '..', 'public')));
+
+// ─── REDIS / PERSISTENCE ──────────────────────────────────────────────────────
+const redis = Redis.fromEnv();
+const INVITE_SECRET = process.env.INVITE_SECRET || 'dev_secret_key';
+
+// Helper to interact with Redis as if it were a Map
+const db = {
+  users: {
+    get: async (id) => await redis.hget('users', id),
+    set: async (id, val) => await redis.hset('users', { [id]: val }),
+    delete: async (id) => await redis.hdel('users', id),
+    all: async () => await redis.hgetall('users') || {},
+  },
+  friendships: {
+    get: async (key) => await redis.hget('friendships', key),
+    set: async (key, val) => await redis.hset('friendships', { [key]: val }),
+    delete: async (key) => await redis.hdel('friendships', key),
+    all: async () => await redis.hgetall('friendships') || {},
+  },
+  invitesUsed: {
+    isUsed: async (token) => await redis.sismember('used_invites', token),
+    markUsed: async (token) => await redis.sadd('used_invites', token),
+  },
+  calls: {
+    get: async (id) => await redis.hget('calls', id),
+    set: async (id, val) => await redis.hset('calls', { [id]: val }),
+  }
+};
 
 // ─── VAPID ────────────────────────────────────────────────────────────────────
 // Generate once: npx web-push generate-vapid-keys
@@ -104,7 +134,7 @@ function isQuietHours(user) {
 
 // ─── PUSH HELPER ──────────────────────────────────────────────────────────────
 async function sendPush(userId, payload) {
-  const user = db.users.get(userId);
+  const user = await db.users.get(userId);
   if (!user?.pushSub) return { ok: false, reason: 'no-sub' };
   try {
     await webpush.sendNotification(user.pushSub, JSON.stringify(payload));
@@ -112,11 +142,13 @@ async function sendPush(userId, payload) {
   } catch (e) {
     if (e.statusCode === 410 || e.statusCode === 404) {
       user.pushSub = null;
+      await db.users.set(userId, user);
       // mark invalid in friendships
-      db.friendships.forEach(f => {
-        if (f.userA === userId) f.pushValidA = false;
-        if (f.userB === userId) f.pushValidB = false;
-      });
+      const allFriends = await db.friendships.all();
+      for (const [key, f] of Object.entries(allFriends)) {
+        if (f.userA === userId) { f.pushValidA = false; await db.friendships.set(key, f); }
+        if (f.userB === userId) { f.pushValidB = false; await db.friendships.set(key, f); }
+      }
     }
     return { ok: false, reason: e.message };
   }
@@ -132,39 +164,40 @@ app.get('/api/health', (req, res) => {
 app.get('/api/vapid-public-key', (_req, res) => res.json({ key: VAPID_PUBLIC }));
 
 // Heartbeat — keeps lastSeen fresh; drives the "app installed" heuristic
-app.post('/api/heartbeat', (req, res) => {
-  let user = db.users.get(req.body.userId);
+app.post('/api/heartbeat', async (req, res) => {
+  let user = await db.users.get(req.body.userId);
   if (!user) {
     user = mkUser(req.body.userId, 'You', 'America/New_York');
-    db.users.set(req.body.userId, user);
   }
   user.lastSeen = Date.now();
+  await db.users.set(req.body.userId, user);
   res.json({ ok: true });
 });
 
 // Push subscription
-app.post('/api/push/subscribe', (req, res) => {
-  let user = db.users.get(req.body.userId);
+app.post('/api/push/subscribe', async (req, res) => {
+  let user = await db.users.get(req.body.userId);
   if (!user) {
     user = mkUser(req.body.userId, 'You', 'America/New_York');
-    db.users.set(req.body.userId, user);
   }
   user.pushSub  = req.body.subscription;
   user.lastSeen = Date.now();
-  db.friendships.forEach(f => {
-    if (f.userA === req.body.userId) f.pushValidA = true;
-    if (f.userB === req.body.userId) f.pushValidB = true;
-  });
+  await db.users.set(req.body.userId, user);
+
+  const allFriends = await db.friendships.all();
+  for (const [key, f] of Object.entries(allFriends)) {
+    if (f.userA === req.body.userId) { f.pushValidA = true; await db.friendships.set(key, f); }
+    if (f.userB === req.body.userId) { f.pushValidB = true; await db.friendships.set(key, f); }
+  }
   res.json({ ok: true });
 });
 
 // Update profile (name, timezone, schedule, bestTimes)
-app.patch('/api/users/:userId', (req, res) => {
-  let user = db.users.get(req.params.userId);
+app.patch('/api/users/:userId', async (req, res) => {
+  let user = await db.users.get(req.params.userId);
   if (!user) {
     // Auto-create if missing (e.g. server restart)
     user = mkUser(req.params.userId, 'You', 'America/New_York');
-    db.users.set(req.params.userId, user);
   }
   const { name, timezone, schedule, bestTimes, avatar, avatarShape } = req.body;
   if (name)        user.name        = String(name).slice(0, 32);
@@ -173,116 +206,138 @@ app.patch('/api/users/:userId', (req, res) => {
   if (bestTimes)   user.bestTimes   = bestTimes;
   if (avatar)      user.avatar      = avatar;
   if (avatarShape) user.avatarShape = avatarShape;
+  await db.users.set(req.params.userId, user);
   res.json({ ok: true, user });
 });
 
 // Full account deletion
-app.delete('/api/users/:userId', (req, res) => {
+app.delete('/api/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  if (!db.users.has(userId)) return res.status(404).json({ error: 'not found' });
-  db.users.delete(userId);
-  db.friendships.forEach((_, k) => { if (k.includes(userId)) db.friendships.delete(k); });
-  db.invites.forEach(inv => { if (inv.senderId === userId && !inv.usedAt) inv.expiresAt = Date.now(); });
-  db.calls.forEach(c => { if ((c.fromId === userId || c.toId === userId) && c.status === 'pending') c.status = 'expired'; });
+  const user = await db.users.get(userId);
+  if (!user) return res.status(404).json({ error: 'not found' });
+  
+  await db.users.delete(userId);
+  const allFriends = await db.friendships.all();
+  for (const [key, f] of Object.entries(allFriends)) {
+    if (key.includes(userId)) await db.friendships.delete(key);
+  }
   res.json({ ok: true });
 });
 
 // ── INVITES ───────────────────────────────────────────────────────────────────
-app.post('/api/invites/create', (req, res) => {
-  let sender = db.users.get(req.body.senderId);
+app.post('/api/invites/create', async (req, res) => {
+  let sender = await db.users.get(req.body.senderId);
   if (!sender) {
     // Auto-create if missing (e.g. server restart)
     sender = mkUser(req.body.senderId, 'You', 'America/New_York');
-    db.users.set(req.body.senderId, sender);
+    await db.users.set(req.body.senderId, sender);
   }
-  const token     = randomUUID().replace(/-/g, '').slice(0, 16);
-  const expiresAt = Date.now() + 48 * 3600 * 1000;
-  db.invites.set(token, { token, senderId: sender.id, expiresAt, usedAt: null, usedBy: null });
+  
+  // Create a signed token containing the senderId and expiration
+  const token = jwt.sign(
+    { senderId: sender.id, exp: Math.floor(Date.now() / 1000) + (48 * 3600) },
+    INVITE_SECRET
+  );
+  
   const proto = req.get('x-forwarded-proto') || req.protocol;
   const host  = req.get('x-forwarded-host') || req.get('host');
   const base  = process.env.BASE_URL || `${proto}://${host}`;
-  res.json({ token, url: `${base}/invite/${token}`, expiresAt });
+  res.json({ token, url: `${base}/invite/${token}`, expiresAt: Date.now() + 48 * 3600 * 1000 });
 });
 
-app.get('/api/invites/:token', (req, res) => {
-  const inv = db.invites.get(req.params.token);
-  if (!inv)         return res.status(404).json({ error: 'not found' });
-  if (inv.usedAt)   return res.status(410).json({ error: 'used' });
-  if (Date.now() > inv.expiresAt) return res.status(410).json({ error: 'expired' });
-  const sender = db.users.get(inv.senderId);
-  if (!sender) return res.status(404).json({ error: 'sender gone' });
-  res.json({
-    token: inv.token,
-    sender: { id: sender.id, name: sender.name, timezone: sender.timezone, avatar: sender.avatar },
-    senderSchedule: sender.schedule,
-    expiresAt: inv.expiresAt,
-  });
+app.get('/api/invites/:token', async (req, res) => {
+  try {
+    const payload = jwt.verify(req.params.token, INVITE_SECRET);
+    const isUsed = await db.invitesUsed.isUsed(req.params.token);
+    if (isUsed) return res.status(410).json({ error: 'used' });
+
+    const sender = await db.users.get(payload.senderId);
+    if (!sender) return res.status(404).json({ error: 'sender gone' });
+
+    res.json({
+      token: req.params.token,
+      sender: { id: sender.id, name: sender.name, timezone: sender.timezone, avatar: sender.avatar },
+      senderSchedule: sender.schedule,
+      expiresAt: payload.exp * 1000,
+    });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') return res.status(410).json({ error: 'expired' });
+    return res.status(400).json({ error: 'invalid' });
+  }
 });
 
 app.post('/api/invites/:token/accept', async (req, res) => {
-  const inv = db.invites.get(req.params.token);
-  if (!inv)         return res.status(404).json({ error: 'not found' });
-  if (inv.usedAt)   return res.status(410).json({ error: 'used' });
-  if (Date.now() > inv.expiresAt) return res.status(410).json({ error: 'expired' });
+  try {
+    const payload = jwt.verify(req.params.token, INVITE_SECRET);
+    const isUsed = await db.invitesUsed.isUsed(req.params.token);
+    if (isUsed) return res.status(410).json({ error: 'used' });
 
-  const { name, timezone, schedule, bestTimes } = req.body;
-  let { recipientId } = req.body;
+    const { name, timezone, schedule, bestTimes } = req.body;
+    let { recipientId } = req.body;
 
-  if (!recipientId || !db.users.has(recipientId)) {
-    recipientId = `user-${randomUUID().slice(0, 8)}`;
-    db.users.set(recipientId, mkUser(recipientId, name || 'Friend', timezone || 'UTC'));
-  }
-  const recip = db.users.get(recipientId);
-  if (name)      recip.name      = String(name).slice(0, 32);
-  if (timezone)  recip.timezone  = timezone;
-  if (schedule)  recip.schedule  = schedule;
-  if (bestTimes) recip.bestTimes = bestTimes;
-  recip.lastSeen = Date.now();
+    if (!recipientId || !(await db.users.get(recipientId))) {
+      recipientId = `user-${randomUUID().slice(0, 8)}`;
+      await db.users.set(recipientId, mkUser(recipientId, name || 'Friend', timezone || 'UTC'));
+    }
+    const recip = await db.users.get(recipientId);
+    if (name)      recip.name      = String(name).slice(0, 32);
+    if (timezone)  recip.timezone  = timezone;
+    if (schedule)  recip.schedule  = schedule;
+    if (bestTimes) recip.bestTimes = bestTimes;
+    recip.lastSeen = Date.now();
+    await db.users.set(recipientId, recip);
 
-  if (recipientId === inv.senderId) return res.status(400).json({ error: 'cannot add yourself' });
+    if (recipientId === payload.senderId) return res.status(400).json({ error: 'cannot add yourself' });
 
-  inv.usedAt = Date.now();
-  inv.usedBy = recipientId;
+    await db.invitesUsed.markUsed(req.params.token);
 
-  const key = friendKey(inv.senderId, recipientId);
-  if (!db.friendships.has(key)) {
-    const [a, b] = key.split(':');
-    db.friendships.set(key, {
-      userA: a, userB: b, since: Date.now(), lastCall: null,
-      pushValidA: !!db.users.get(a)?.pushSub,
-      pushValidB: !!db.users.get(b)?.pushSub,
+    const key = friendKey(payload.senderId, recipientId);
+    let friendship = await db.friendships.get(key);
+    if (!friendship) {
+      const [a, b] = key.split(':');
+      const sender = await db.users.get(a);
+      const recipient = await db.users.get(b);
+      friendship = {
+        userA: a, userB: b, since: Date.now(), lastCall: null,
+        pushValidA: !!sender?.pushSub,
+        pushValidB: !!recipient?.pushSub,
+      };
+      await db.friendships.set(key, friendship);
+    }
+
+    // Notify sender
+    await sendPush(payload.senderId, {
+      type: 'invite-accepted',
+      title: `${recip.name} joined ping`,
+      body: 'Tap to see their card.',
+      data: { friendId: recipientId },
     });
+
+    res.json({
+      ok: true,
+      userId: recipientId,
+      user: recip,
+      friend: await db.users.get(payload.senderId),
+    });
+  } catch (err) {
+    return res.status(400).json({ error: 'invalid' });
   }
-
-  // Notify sender
-  await sendPush(inv.senderId, {
-    type: 'invite-accepted',
-    title: `${recip.name} joined ping`,
-    body: 'Tap to see their card.',
-    data: { friendId: recipientId },
-  });
-
-  res.json({
-    ok: true,
-    userId: recipientId,
-    user: db.users.get(recipientId),
-    friend: db.users.get(inv.senderId),
-  });
 });
 
 // ── FRIENDS ───────────────────────────────────────────────────────────────────
-app.get('/api/friends/:userId', (req, res) => {
+app.get('/api/friends/:userId', async (req, res) => {
   const { userId } = req.params;
-  if (!db.users.has(userId)) {
-    db.users.set(userId, mkUser(userId, 'You', 'America/New_York'));
+  if (!(await db.users.get(userId))) {
+    await db.users.set(userId, mkUser(userId, 'You', 'America/New_York'));
   }
 
+  const allFriends = await db.friendships.all();
   const friends = [];
-  db.friendships.forEach((f, key) => {
-    if (!key.includes(userId)) return;
+  for (const [key, f] of Object.entries(allFriends)) {
+    if (!key.includes(userId)) continue;
     const friendId = f.userA === userId ? f.userB : f.userA;
-    const friend   = db.users.get(friendId);
-    if (!friend) return;
+    const friend   = await db.users.get(friendId);
+    if (!friend) continue;
     const pushValid     = f.userA === userId ? f.pushValidB : f.pushValidA;
     const heartbeatDays = Math.floor((Date.now() - friend.lastSeen) / 86400000);
     const daysSinceLast = f.lastCall ? Math.floor((Date.now() - f.lastCall) / 86400000) : null;
@@ -304,7 +359,7 @@ app.get('/api/friends/:userId', (req, res) => {
       daysSinceLastCall: daysSinceLast,
       since: f.since,
     });
-  });
+  }
 
   res.json({ friends });
 });
@@ -312,8 +367,8 @@ app.get('/api/friends/:userId', (req, res) => {
 // ── CALLS ─────────────────────────────────────────────────────────────────────
 app.post('/api/calls/ping', async (req, res) => {
   const { fromId, toId } = req.body;
-  const from = db.users.get(fromId);
-  const to   = db.users.get(toId);
+  const from = await db.users.get(fromId);
+  const to   = await db.users.get(toId);
   if (!from || !to) return res.status(404).json({ error: 'user not found' });
 
   if (isQuietHours(to)) {
@@ -325,13 +380,14 @@ app.post('/api/calls/ping', async (req, res) => {
   }
 
   const callId = randomUUID();
-  db.calls.set(callId, {
+  const call = {
     id: callId, fromId, toId,
     status: 'pending',
     createdAt: Date.now(),
     expiresAt: Date.now() + 24 * 3600 * 1000,
     deliveredAt: null, respondedAt: null,
-  });
+  };
+  await db.calls.set(callId, call);
 
   const result = await sendPush(toId, {
     type: 'incoming-ping',
@@ -345,7 +401,10 @@ app.post('/api/calls/ping', async (req, res) => {
     ],
   });
 
-  if (result.ok) db.calls.get(callId).deliveredAt = Date.now();
+  if (result.ok) {
+    call.deliveredAt = Date.now();
+    await db.calls.set(callId, call);
+  }
 
   res.json({
     callId,
@@ -358,7 +417,7 @@ app.post('/api/calls/ping', async (req, res) => {
 });
 
 app.post('/api/calls/:callId/respond', async (req, res) => {
-  const call = db.calls.get(req.params.callId);
+  const call = await db.calls.get(req.params.callId);
   if (!call)                   return res.status(404).json({ error: 'not found' });
   if (call.status !== 'pending') return res.status(409).json({ error: 'already responded' });
   if (Date.now() > call.expiresAt) return res.status(410).json({ error: 'expired' });
@@ -366,12 +425,17 @@ app.post('/api/calls/:callId/respond', async (req, res) => {
   const { action, userId } = req.body;
   call.status      = action === 'no' ? 'declined' : action === 'yes-30' ? 'deferred' : 'accepted';
   call.respondedAt = Date.now();
+  await db.calls.set(req.params.callId, call);
 
   const key = friendKey(call.fromId, call.toId);
-  if (db.friendships.has(key)) db.friendships.get(key).lastCall = Date.now();
+  const friendship = await db.friendships.get(key);
+  if (friendship) {
+    friendship.lastCall = Date.now();
+    await db.friendships.set(key, friendship);
+  }
 
-  const responder = db.users.get(userId);
-  const from      = db.users.get(call.fromId);
+  const responder = await db.users.get(userId);
+  const from      = await db.users.get(call.fromId);
   const msgs      = {
     accepted: `${responder?.name || 'They'}'re free — call now!`,
     declined: `${responder?.name || 'They'} can't talk right now.`,
@@ -390,8 +454,8 @@ app.post('/api/calls/:callId/respond', async (req, res) => {
   res.json({ ok: true, status: call.status });
 });
 
-app.get('/api/calls/:callId', (req, res) => {
-  const call = db.calls.get(req.params.callId);
+app.get('/api/calls/:callId', async (req, res) => {
+  const call = await db.calls.get(req.params.callId);
   if (!call) return res.status(404).json({ error: 'not found' });
   res.json(call);
 });
