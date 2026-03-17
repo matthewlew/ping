@@ -387,4 +387,8 @@ app.get('/onboarding.html', (_req, res) => res.sendFile(join(__dirname, 'public'
 app.get(/.*/, (_req, res) => res.sendFile(join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`ping → http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`ping → http://localhost:${PORT}`));
+}
+
+export default app;
