@@ -15,7 +15,7 @@
   color-scheme: light dark;
   --bg:#0c0c0e;--surf:#13131a;--surf2:#1a1a24;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --text:#eeeef2;--muted:rgba(238,238,242,0.38);--muted2:rgba(238,238,242,0.6);
+  --text:#eeeef2;--muted:rgba(238,238,242,0.6);--muted2:rgba(238,238,242,0.75);
   --accent:#c8f560;--accent-d:rgba(200,245,96,0.1);--warn:#ffb347;--r:18px;
   --toast-success:rgba(200,245,96,.28);--toast-error:rgba(255,107,107,.28);
   --pill-asleep-bg:rgba(120,120,180,.18);--pill-asleep-color:#9a9ac0;
@@ -30,7 +30,7 @@
   :root {
     --bg:#fcfcfc;--surf:#ffffff;--surf2:#f5f5f5;
     --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
-    --text:#111111;--muted:rgba(0,0,0,0.45);--muted2:rgba(0,0,0,0.65);
+    --text:#111111;--muted:rgba(0,0,0,0.6);--muted2:rgba(0,0,0,0.75);
     --accent:#427800;--accent-d:rgba(66,120,0,0.1);--warn:#995c00;
     --toast-success:rgba(66,120,0,.2);--toast-error:rgba(200,0,0,.15);
     --pill-asleep-bg:rgba(70,70,120,.12);--pill-asleep-color:#4a4a70;
@@ -211,7 +211,15 @@ async function sendPing(toId){
     if(!res.ok){toast('!','Error',d.error||'Something went wrong','error');return;}
     toast('↗','Ping sent',d.message,'success');
     const f=friends.find(x=>x.id===toId);
-    if(f)document.getElementById('pendingBanner').innerHTML=`<div class="pending-banner"><div class="pulse"></div><span>Waiting on <strong>${f.name}</strong>…</span></div>`;
+    if(f) {
+      document.getElementById('pendingBanner').innerHTML=`<div class="pending-banner"><div class="pulse"></div><span>Waiting on <strong>${f.name}</strong>…</span></div>`;
+      setTimeout(() => {
+        const banner = document.getElementById('pendingBanner');
+        if (banner.innerHTML.includes(`Waiting on <strong>${f.name}</strong>`)) {
+          banner.innerHTML = '';
+        }
+      }, 60000);
+    }
   }catch{toast('!','Error','Could not reach server','error');}
 }
 
