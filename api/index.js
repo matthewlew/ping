@@ -14,10 +14,30 @@ app.use(express.json());
 app.use(express.static(join(__dirname, '..', 'public')));
 
 // ─── REDIS / PERSISTENCE ──────────────────────────────────────────────────────
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+let redis;
+if (process.env.NODE_ENV === 'test') {
+  // simple mock for redis
+  const map = new Map();
+  redis = {
+    hget: async (k, f) => { const v = map.get(`${k}:${f}`); return v ? JSON.parse(v) : null; },
+    hset: async (k, obj) => { for (const f in obj) map.set(`${k}:${f}`, JSON.stringify(obj[f])); return 1; },
+    hdel: async (k, f) => { map.delete(`${k}:${f}`); return 1; },
+    hgetall: async (k) => {
+      const res = {};
+      for (const [key, val] of map.entries()) {
+        if (key.startsWith(`${k}:`)) res[key.slice(k.length + 1)] = JSON.parse(val);
+      }
+      return Object.keys(res).length > 0 ? res : null;
+    },
+    sismember: async (k, v) => map.has(`${k}:${v}`) ? 1 : 0,
+    sadd: async (k, v) => { map.set(`${k}:${v}`, "1"); return 1; },
+  };
+} else {
+  redis = new Redis({
+    url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+}
 const INVITE_SECRET = process.env.INVITE_SECRET || 'dev_secret_key';
 
 // Helper to interact with Redis as if it were a Map
@@ -317,6 +337,16 @@ app.post('/api/invites/:token/accept', async (req, res) => {
 });
 
 // ── FRIENDS ───────────────────────────────────────────────────────────────────
+app.delete('/api/friends/:userId/:friendId', async (req, res) => {
+  const { userId, friendId } = req.params;
+  const key = friendKey(userId, friendId);
+  const friendship = await db.friendships.get(key);
+  if (!friendship) return res.status(404).json({ error: 'friendship not found' });
+
+  await db.friendships.delete(key);
+  res.json({ ok: true });
+});
+
 app.get('/api/friends/:userId', async (req, res) => {
   const { userId } = req.params;
   if (!(await db.users.get(userId))) {

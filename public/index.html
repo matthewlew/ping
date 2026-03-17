@@ -87,6 +87,12 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 .ping-btn:active{background:var(--toast-success);transform:scale(.93)}
 .ping-btn.quiet{background:var(--ping-quiet-bg);border-color:var(--border);color:var(--muted)}
 
+.remove-btn{display:none;width:42px;height:42px;border-radius:13px;background:var(--toast-error);border:1px solid var(--toast-error);color:#ff6b6b;font-size:19px;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;transition:transform .1s}
+.remove-btn:active{transform:scale(.93)}
+
+.edit-mode .remove-btn{display:flex}
+.edit-mode .ping-btn{display:none}
+
 .empty{text-align:center;padding:44px 24px;color:var(--muted2)}
 .empty-emoji{font-size:36px;margin-bottom:12px}
 .empty p{font-size:14px;line-height:1.6}
@@ -125,6 +131,7 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
   <div class="wordmark">ping</div>
   <div class="header-actions">
     <button class="icon-btn" id="refreshBtn">↻</button>
+    <button class="icon-btn" id="editBtn">✎</button>
     <button class="icon-btn" id="profileBtn">◉</button>
   </div>
 </div>
@@ -198,9 +205,25 @@ function renderCards(){
         ${chips?`<div class="best-chips">${chips}</div>`:''}
       </div>
       <button class="ping-btn ${f.isQuiet?'quiet':''}" data-id="${f.id}" title="${f.isQuiet?'Quiet hours':'Ping '+f.name}">${f.isQuiet?'🌙':'↗'}</button>
+      <button class="remove-btn" data-id="${f.id}" title="Remove ${f.name}">×</button>
     </div>`;
   }).join('');
   list.querySelectorAll('.ping-btn').forEach(b=>b.addEventListener('click',()=>sendPing(b.dataset.id)));
+  list.querySelectorAll('.remove-btn').forEach(b=>b.addEventListener('click',()=>removeFriend(b.dataset.id)));
+}
+
+document.getElementById('editBtn').addEventListener('click', () => {
+  document.getElementById('cardList').classList.toggle('edit-mode');
+});
+
+async function removeFriend(friendId){
+  if(!confirm('Are you sure you want to remove this friend?')) return;
+  try{
+    const res=await fetch(`/api/friends/${ME}/${friendId}`,{method:'DELETE'});
+    if(!res.ok){toast('!','Error','Could not remove friend','error');return;}
+    toast('✓','Removed','Friend removed successfully','success');
+    loadFriends();
+  }catch{toast('!','Error','Could not reach server','error');}
 }
 
 async function sendPing(toId){
