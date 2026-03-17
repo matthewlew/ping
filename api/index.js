@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.set('trust proxy', true);
 app.use(express.json());
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, '..', 'public')));
 
 // ─── VAPID ────────────────────────────────────────────────────────────────────
 // Generate once: npx web-push generate-vapid-keys
@@ -382,9 +382,9 @@ app.get('/api/calls/:callId', (req, res) => {
 });
 
 // ─── PAGE ROUTES ──────────────────────────────────────────────────────────────
-app.get(/^\/invite\/.*/, (_req, res) => res.sendFile(join(__dirname, 'public', 'invite.html')));
-app.get('/onboarding.html', (_req, res) => res.sendFile(join(__dirname, 'public', 'onboarding.html')));
-app.get(/.*/, (_req, res) => res.sendFile(join(__dirname, 'public', 'index.html')));
+app.get(/^\/invite\/.*/, (_req, res) => res.sendFile(join(__dirname, '..', 'public', 'invite.html')));
+app.get('/onboarding.html', (_req, res) => res.sendFile(join(__dirname, '..', 'public', 'onboarding.html')));
+app.get(/.*/, (_req, res) => res.sendFile(join(__dirname, '..', 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
