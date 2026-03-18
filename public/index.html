@@ -119,7 +119,7 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 .nav-icon{font-size:19px}
 .nav-btn.active{color:var(--accent);background:var(--accent-d)}
 
-/* ── QR Modal ─────────────────────────────────────────────────────────────── */
+/* ── Modals ───────────────────────────────────────────────────────────────── */
 .qr-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;backdrop-filter:blur(3px)}
 .qr-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surf);border-radius:24px 24px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));z-index:301;animation:su .25s ease}
 .qr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -133,6 +133,18 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 .share-btn:active{opacity:.85}
 .or-divider{text-align:center;font-size:12px;color:var(--muted);margin:2px 0}
 .expiry-note{text-align:center;font-size:11px;color:var(--muted);margin-top:6px}
+
+/* Field standard */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{width:100%;padding:15px 16px;background:var(--surf2);border:1px solid var(--border2);border-radius:13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+
+.btn-primary{background:var(--accent);color:var(--invite-btn-text);border:none;border-radius:14px;padding:15px 20px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s,transform .1s;display:flex;align-items:center;gap:8px;justify-content:center;width:100%}
+.btn-primary:active{opacity:.88;transform:scale(.98)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+.btn-ghost{background:none;color:var(--muted2);border:1px solid var(--border2);border-radius:14px;padding:13px 20px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:8px;justify-content:center;width:100%}
+.btn-ghost:active{background:var(--surf2)}
 </style>
 </head>
 <body>
@@ -140,12 +152,13 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 <div class="header">
   <div class="wordmark">ping</div>
   <div class="header-actions">
-    <button class="icon-btn" id="refreshBtn" aria-label="Refresh friends">↻</button>
-    <button class="icon-btn" id="profileBtn" aria-label="Open settings">◉</button>
+    <button class="icon-btn" id="refreshBtn" aria-label="Refresh">↻</button>
+    <button class="icon-btn" id="profileBtn" aria-label="Settings">◉</button>
   </div>
 </div>
 
 <div id="pendingBanner"></div>
+
 <div id="friendsView">
   <div class="sec-label">inner circle</div>
   <div class="cards" id="cardList" role="main"></div>
@@ -177,7 +190,6 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
       <button class="qr-close" id="manualCloseBtn" aria-label="Close">✕</button>
     </div>
     <p class="qr-hint">Track their timezone instantly. They won't get a link or be notified.</p>
-    
     <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
       <div class="field">
         <label for="manualName">Name</label>
@@ -188,7 +200,6 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
         <select id="manualTz"></select>
       </div>
     </div>
-
     <button class="btn-primary" id="manualSaveBtn">Add to Circle</button>
   </div>
 </div>
@@ -219,6 +230,7 @@ body{min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px}
 </div>
 
 <script>
+// ─── STATE & CONSTANTS ───────────────────────────────────────────────────────
 const ME = localStorage.getItem('pingUserId') || 'user-demo-a';
 const TOD_ICON = {morning:'☀',afternoon:'⛅',evening:'🌆',night:'🌙'};
 const TZ_LIST = [
@@ -228,33 +240,42 @@ const TZ_LIST = [
   'Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo',
   'Australia/Sydney','Pacific/Auckland',
 ];
+
 let friends = [];
 let history = [];
 let activeTab = 'friends';
 
-function switchTab(tab) {
-  activeTab = tab;
-  document.getElementById('friendsView').style.display = tab === 'friends' ? 'block' : 'none';
-  document.getElementById('historyView').style.display = tab === 'history' ? 'block' : 'none';
-  document.getElementById('navFriends').classList.toggle('active', tab === 'friends');
-  document.getElementById('navHistory').classList.toggle('active', tab === 'history');
-  if (tab === 'history') loadHistory();
-  else loadFriends();
-}
-
-function timeAgo(ms) {
-  const diff = Date.now() - ms;
-  if (diff < 60000) return 'just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  return Math.floor(diff / 86400000) + 'd ago';
-}
-
+// ─── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
   if (!localStorage.getItem('pingDisplayName') && !localStorage.getItem('pingSeenWelcome')) {
     localStorage.setItem('pingSeenWelcome','1');
     window.location.href = '/onboarding.html'; return;
   }
+
+  // Setup Listeners
+  document.getElementById('navFriends').addEventListener('click', () => switchTab('friends'));
+  document.getElementById('navHistory').addEventListener('click', () => switchTab('history'));
+  
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    if (activeTab === 'friends') loadFriends();
+    else loadHistory();
+  });
+  
+  document.getElementById('profileBtn').addEventListener('click', () => {
+    window.location.href = '/onboarding.html?settings';
+  });
+
+  document.getElementById('createInviteBtn').addEventListener('click', createInvite);
+  
+  document.getElementById('manualAddBtn').addEventListener('click', openManualModal);
+  document.getElementById('manualCloseBtn').addEventListener('click', closeManualModal);
+  document.getElementById('manualBackdrop').addEventListener('click', closeManualModal);
+  document.getElementById('manualSaveBtn').addEventListener('click', saveManualFriend);
+
+  document.getElementById('qrCloseBtn').addEventListener('click', closeQRModal);
+  document.getElementById('qrBackdrop').addEventListener('click', closeQRModal);
+  
+  document.getElementById('notifBtn').addEventListener('click', handleNotifBtn);
   if ('Notification' in window && Notification.permission === 'granted') {
     document.getElementById('notifBtnText').textContent = 'Test';
   }
@@ -265,60 +286,47 @@ async function init() {
     }
   });
 
-  heartbeat(); setInterval(heartbeat, 300000); setInterval(tickTimes, 30000);
+  document.addEventListener('keydown', e => { 
+    if (e.key === 'Escape') { closeQRModal(); closeManualModal(); }
+  });
+
+  // Background Tasks
+  heartbeat(); 
+  setInterval(heartbeat, 300000); 
+  setInterval(tickTimes, 30000);
+  
   await loadFriends();
   registerSW();
 }
 
+// ─── NAVIGATION ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('friendsView').style.display = tab === 'friends' ? 'block' : 'none';
+  document.getElementById('historyView').style.display = tab === 'history' ? 'block' : 'none';
+  document.getElementById('navFriends').classList.toggle('active', tab === 'friends');
+  document.getElementById('navHistory').classList.toggle('active', tab === 'history');
+  if (tab === 'history') loadHistory();
+  else loadFriends();
+}
+
+// ─── DATA LOADING ────────────────────────────────────────────────────────────
 function heartbeat(){ fetch('/api/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:ME})}).catch(()=>{}); }
 
 async function loadFriends(){
-  try{ const d = await fetch(`/api/friends/${ME}`).then(r=>r.json()); friends=d.friends||[]; if(activeTab === 'friends') renderCards(); }catch{}
+  try {
+    const d = await fetch(`/api/friends/${ME}`).then(r=>r.json());
+    friends = d.friends || [];
+    if(activeTab === 'friends') renderCards();
+  } catch(e) {}
 }
 
 async function loadHistory(){
-  try{
+  try {
     const d = await fetch(`/api/history/${ME}`).then(r=>r.json());
     history = d.history || [];
     renderHistory();
-  }catch{}
-}
-
-function renderHistory(){
-  const list = document.getElementById('historyList');
-  if(!history.length){
-    list.innerHTML = `<div class="empty"><div class="empty-emoji">⏳</div><p>Ping someone and this fills up with your connection story.<br><br><button class="btn-primary" onclick="switchTab('friends')" style="padding:10px 20px;width:auto">Ping a friend</button></p></div>`;
-    return;
-  }
-  
-  const statusLabels = {
-    pending:  'Waiting...',
-    accepted: 'Connected',
-    declined: 'Not now',
-    deferred: 'In 30m',
-    expired:  'Expired'
-  };
-
-  list.innerHTML = history.map(h => {
-    const isSent = h.type === 'sent';
-    const time   = timeAgo(h.createdAt);
-    const peer   = h.peer;
-    let detail   = statusLabels[h.status] || h.status;
-    if (h.status === 'accepted' && h.respondedAt) {
-      detail = `Connected · ${timeAgo(h.respondedAt)}`;
-    }
-
-    return `<div class="card">
-      <div class="avi ${peer.avatarShape || 'circle'}">${peer.avatar || '👤'}</div>
-      <div class="card-info">
-        <div class="card-name">${isSent ? 'To' : 'From'} ${peer.name}</div>
-        <div class="card-meta">
-          <span class="card-time">${time}</span>
-          <span class="pill ${h.status}">${detail}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  } catch(e) {}
 }
 
 function tickTimes(){
@@ -328,7 +336,16 @@ function tickTimes(){
   });
 }
 
+// ─── RENDERING ───────────────────────────────────────────────────────────────
 function localLabel(tz){ try{return new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit',hour12:true}).format(new Date())}catch{return'--:--'} }
+
+function timeAgo(ms) {
+  const diff = Date.now() - ms;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return Math.floor(diff / 86400000) + 'd ago';
+}
 
 function renderCards(){
   const list=document.getElementById('cardList');
@@ -351,8 +368,32 @@ function renderCards(){
   list.querySelectorAll('.ping-btn').forEach(b=>b.addEventListener('click',()=>sendPing(b.dataset.id)));
 }
 
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(!history.length){
+    list.innerHTML = `<div class="empty"><div class="empty-emoji">⏳</div><p>Ping someone and this fills up with your connection story.<br><br><button class="btn-primary" onclick="switchTab('friends')" style="padding:10px 20px;width:auto">Ping a friend</button></p></div>`;
+    return;
+  }
+  const statusLabels = { pending:'Waiting...', accepted:'Connected', declined:'Not now', deferred:'In 30m', expired:'Expired' };
+  list.innerHTML = history.map(h => {
+    const isSent = h.type === 'sent';
+    const time   = timeAgo(h.createdAt);
+    const peer   = h.peer;
+    let detail   = statusLabels[h.status] || h.status;
+    if (h.status === 'accepted' && h.respondedAt) detail = `Connected · ${timeAgo(h.respondedAt)}`;
+    return `<div class="card">
+      <div class="avi ${peer.avatarShape || 'circle'}">${peer.avatar || '👤'}</div>
+      <div class="card-info">
+        <div class="card-name">${isSent ? 'To' : 'From'} ${peer.name}</div>
+        <div class="card-meta"><span class="card-time">${time}</span><span class="pill ${h.status}">${detail}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
 async function sendPing(toId){
-  try{
+  try {
     const res=await fetch('/api/calls/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fromId:ME,toId})});
     const d=await res.json();
     if(res.status===403){toast('🌙','Quiet hours',d.message,'');return;}
@@ -360,76 +401,52 @@ async function sendPing(toId){
     toast('↗','Ping sent',d.message,'success');
     const f=friends.find(x=>x.id===toId);
     if(f)document.getElementById('pendingBanner').innerHTML=`<div class="pending-banner"><div class="pulse"></div><span>Waiting on <strong>${f.name}</strong>…</span></div>`;
-  }catch{toast('!','Error','Could not reach server','error');}
+  } catch(e) { toast('!','Error','Could not reach server','error'); }
 }
 
-// ─── QR MODAL ────────────────────────────────────────────────────────────────
-let _qrInstance = null;
+async function createInvite() {
+  try {
+    const r = await fetch('/api/invites/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderId: ME }) });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 429) { toast('!', 'Slow down', 'Too many invites. Wait a minute.', 'error'); return; }
+      throw new Error(err.message || 'Server error');
+    }
+    const d = await r.json();
+    document.getElementById('linkArea').innerHTML = `<div class="link-row"><code>${d.url}</code><button class="copy-btn" id="copyBtn" data-url="${d.url}">Copy</button></div>`;
+    document.getElementById('copyBtn').addEventListener('click', async e => {
+      await copyToClipboard(e.target.dataset.url);
+      e.target.textContent = 'Copied!'; e.target.classList.add('copied');
+      setTimeout(() => { e.target.textContent = 'Copy'; e.target.classList.remove('copied'); }, 2000);
+    });
+    openQRModal(d.url, d.expiresAt);
+  } catch (e) { toast('!', 'Error', 'Could not create invite', 'error'); }
+}
 
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+let _qrInstance = null;
 function openQRModal(url, expiresAt) {
   const modal    = document.getElementById('qrModal');
   const canvas   = document.getElementById('qrCanvas');
   const shareBtn = document.getElementById('shareBtn');
   const linkArea = document.getElementById('qrLinkArea');
-  const orDiv    = document.getElementById('orDivider');
   const expiry   = document.getElementById('qrExpiry');
-
-  // Clear previous QR
-  canvas.innerHTML = '';
-  _qrInstance = null;
-
-  // Generate QR code into the canvas div
-  try {
-    _qrInstance = new QRCode(canvas, {
-      text: url,
-      width: 220, height: 220,
-      colorDark: '#000000', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M,
-    });
-  } catch (e) {
-    canvas.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center">QR unavailable</p>';
-  }
-
-  // Share button: use Web Share API if available, otherwise show copy row
+  canvas.innerHTML = ''; _qrInstance = null;
+  try { _qrInstance = new QRCode(canvas, { text: url, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
+  catch (e) { canvas.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center">QR unavailable</p>'; }
   if (navigator.share) {
-    shareBtn.style.display = 'flex';
-    orDiv.style.display    = 'none';
-    linkArea.innerHTML     = '';
-    shareBtn.onclick = async () => {
-      try {
-        await navigator.share({ title: 'Join me on ping', url });
-      } catch (e) {
-        if (e.name !== 'AbortError') toast('!', 'Share failed', e.message, 'error');
-      }
-    };
+    shareBtn.style.display = 'flex'; linkArea.innerHTML = '';
+    shareBtn.onclick = async () => { try { await navigator.share({ title: 'Join me on ping', url }); } catch (e) { if (e.name !== 'AbortError') toast('!', 'Share failed', e.message, 'error'); } };
   } else {
-    // Fallback: hide share btn, show copy row
     shareBtn.style.display = 'none';
-    orDiv.style.display    = 'none';
-    linkArea.innerHTML     = `<div class="link-row"><code>${url}</code><button class="copy-btn" id="qrCopyBtn">Copy</button></div>`;
-    document.getElementById('qrCopyBtn').addEventListener('click', async (e) => {
-      await copyToClipboard(url);
-      e.target.textContent = 'Copied!'; e.target.classList.add('copied');
-      setTimeout(() => { e.target.textContent = 'Copy'; e.target.classList.remove('copied'); }, 2000);
-    });
+    linkArea.innerHTML = `<div class="link-row"><code>${url}</code><button class="copy-btn" id="qrCopyBtn">Copy</button></div>`;
+    document.getElementById('qrCopyBtn').addEventListener('click', async (e) => { await copyToClipboard(url); e.target.textContent = 'Copied!'; e.target.classList.add('copied'); setTimeout(() => { e.target.textContent = 'Copy'; e.target.classList.remove('copied'); }, 2000); });
   }
-
-  // Expiry label
-  if (expiresAt) {
-    const h = Math.round((expiresAt - Date.now()) / 3600000);
-    expiry.textContent = `Link expires in ~${h} hours`;
-  }
-
-  modal.style.display = 'block';
-  document.body.style.overflow = 'hidden';
+  if (expiresAt) expiry.textContent = `Link expires in ~${Math.round((expiresAt - Date.now()) / 3600000)} hours`;
+  modal.style.display = 'block'; document.body.style.overflow = 'hidden';
 }
+function closeQRModal() { document.getElementById('qrModal').style.display = 'none'; document.body.style.overflow = ''; }
 
-function closeQRModal() {
-  document.getElementById('qrModal').style.display = 'none';
-  document.body.style.overflow = '';
-}
-
-// ─── MANUAL ADD ──────────────────────────────────────────────────────────────
 function openManualModal() {
   const modal = document.getElementById('manualModal');
   const sel   = document.getElementById('manualTz');
@@ -437,176 +454,77 @@ function openManualModal() {
   const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const all = TZ_LIST.includes(detected)?TZ_LIST:[detected,...TZ_LIST];
   all.forEach(tz => {
-    const opt = document.createElement('option');
-    opt.value = tz;
+    const opt = document.createElement('option'); opt.value = tz;
     opt.textContent = `${tz.replace(/_/g,' ')} · ${localLabel(tz)}`;
     if(tz===detected) opt.selected=true;
     sel.appendChild(opt);
   });
-  modal.style.display = 'block';
-  document.body.style.overflow = 'hidden';
+  modal.style.display = 'block'; document.body.style.overflow = 'hidden';
 }
-
-function closeManualModal() {
-  document.getElementById('manualModal').style.display = 'none';
-  document.body.style.overflow = '';
-}
+function closeManualModal() { document.getElementById('manualModal').style.display = 'none'; document.body.style.overflow = ''; }
 
 async function saveManualFriend() {
   const name = document.getElementById('manualName').value.trim();
   const tz   = document.getElementById('manualTz').value;
   const btn  = document.getElementById('manualSaveBtn');
   if(!name) { toast('!', 'Required', 'Please enter a name', 'error'); return; }
-  
-  btn.disabled = true;
-  btn.textContent = 'Adding...';
+  btn.disabled = true; btn.textContent = 'Adding...';
   try {
-    const r = await fetch('/api/friends/manual', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: ME, name, timezone: tz }),
-    });
+    const r = await fetch('/api/friends/manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: ME, name, timezone: tz }) });
     if(!r.ok) throw new Error('Failed to add');
     toast('👋', 'Added!', `${name} is in your circle.`, 'success');
-    closeManualModal();
-    document.getElementById('manualName').value = '';
+    closeManualModal(); document.getElementById('manualName').value = '';
     loadFriends();
-  } catch(e) {
-    toast('!', 'Error', 'Could not add friend', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Add to Circle';
-  }
+  } catch(e) { toast('!', 'Error', 'Could not add friend', 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Add to Circle'; }
 }
 
-document.getElementById('manualAddBtn').addEventListener('click', openManualModal);
-document.getElementById('manualCloseBtn').addEventListener('click', closeManualModal);
-document.getElementById('manualBackdrop').addEventListener('click', closeManualModal);
-document.getElementById('manualSaveBtn').addEventListener('click', saveManualFriend);
-
-document.getElementById('qrCloseBtn').addEventListener('click', closeQRModal);
-document.getElementById('qrBackdrop').addEventListener('click', closeQRModal);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQRModal(); });
-
-async function copyToClipboard(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-  }
-}
-
-document.getElementById('createInviteBtn').addEventListener('click', async () => {
-  try {
-    const r = await fetch('/api/invites/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senderId: ME }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      if (r.status === 429) { toast('!', 'Slow down', 'Too many invites. Wait a minute.', 'error'); return; }
-      throw new Error(err.message || 'Server error');
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+async function handleNotifBtn() {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        reg.showNotification('Test Ping', { body: "This is what a ping looks like.", icon: '/icon-192.png', badge: '/badge.png', data: { callId: 'test-ping' }, actions: [ { action: 'yes', title: '✓ Yes' }, { action: 'yes-30', title: '⏱ In 30 min' }, { action: 'no', title: '✗ Not now' } ] });
+        toast('⌁', 'Test notification sent', '', 'success');
+      } else { toast('!', 'Service worker not active', '', 'error'); }
     }
-    const d = await r.json();
-    // Always store in linkArea for the non-QR fallback in the card
-    document.getElementById('linkArea').innerHTML =
-      `<div class="link-row"><code>${d.url}</code><button class="copy-btn" id="copyBtn" data-url="${d.url}">Copy</button></div>`;
-    document.getElementById('copyBtn').addEventListener('click', async e => {
-      await copyToClipboard(e.target.dataset.url);
-      e.target.textContent = 'Copied!'; e.target.classList.add('copied');
-      setTimeout(() => { e.target.textContent = 'Copy'; e.target.classList.remove('copied'); }, 2000);
-    });
-    openQRModal(d.url, d.expiresAt);
-  } catch (e) {
-    toast('!', 'Error', 'Could not create invite', 'error');
+  } else {
+    const p = await Notification.requestPermission();
+    if (p === 'granted') { toast('⌁', 'Notifications on', '', 'success'); document.getElementById('notifBtnText').textContent = 'Test'; registerSW(); }
+    else { toast('!', 'Blocked', 'Enable in browser settings', 'error'); }
   }
-});
+}
 
 async function registerSW(){
   if(!('serviceWorker'in navigator)||!('PushManager'in window))return;
-  try{
+  try {
     const reg=await navigator.serviceWorker.register('/sw.js');
     const {key}=await fetch('/api/vapid-public-key').then(r=>r.json());
-    if(key==='YOUR_VAPID_PUBLIC_KEY')return;
+    if(!key || key==='YOUR_VAPID_PUBLIC_KEY')return;
     let sub=await reg.pushManager.getSubscription();
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(key)});
     await fetch('/api/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:ME,subscription:sub.toJSON()})});
     reg.active?.postMessage({type:'set-user-id',userId:ME});
     navigator.serviceWorker.addEventListener('message',e=>{
       const{type,data}=e.data||{};
-      if(type==='call-response'){
-        document.getElementById('pendingBanner').innerHTML='';
-        const msgs={accepted:'said yes!',declined:"can't talk now.",deferred:'free in 30 min.'};
-        toast('📞',data.friendName,msgs[data.response]||'','success'); loadFriends();
-      }
+      if(type==='call-response'){ document.getElementById('pendingBanner').innerHTML=''; const msgs={accepted:'said yes!',declined:"can't talk now.",deferred:'free in 30 min.'}; toast('📞',data.friendName,msgs[data.response]||'','success'); loadFriends(); }
       if(type==='invite-accepted'){toast('👋','New connection',data.friendName+' accepted your invite','success');loadFriends();}
     });
-  }catch(e){console.log('SW:',e.message);}
+  } catch(e) {}
 }
-
-document.getElementById('notifBtn').addEventListener('click',async()=>{
-  if ('Notification' in window && Notification.permission === 'granted') {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg) {
-        reg.showNotification('Test Ping', {
-          body: "This is what a ping looks like.",
-          icon: '/icon-192.png',
-          badge: '/badge.png',
-          data: { callId: 'test-ping' },
-          actions: [
-            { action: 'yes', title: '✓ Yes' },
-            { action: 'yes-30', title: '⏱ In 30 min' },
-            { action: 'no', title: '✗ Not now' }
-          ]
-        });
-        toast('⌁', 'Test notification sent', '', 'success');
-      } else {
-        toast('!', 'Service worker not active', '', 'error');
-      }
-    }
-  } else {
-    const p=await Notification.requestPermission();
-    if(p==='granted'){
-      toast('⌁','Notifications on','','success');
-      document.getElementById('notifBtnText').textContent='Test';
-      registerSW();
-    }else{
-      toast('!','Blocked','Enable in browser settings','error');
-    }
-  }
-});
-document.getElementById('refreshBtn').addEventListener('click',() => {
-  if (activeTab === 'friends') loadFriends();
-  else loadHistory();
-});
-document.getElementById('profileBtn').addEventListener('click',()=>{window.location.href='/onboarding.html?settings';});
-document.getElementById('navFriends').addEventListener('click', () => switchTab('friends'));
-document.getElementById('navHistory').addEventListener('click', () => switchTab('history'));
-
-// Manual Add
-document.getElementById('manualAddBtn').addEventListener('click', openManualModal);
-document.getElementById('manualCloseBtn').addEventListener('click', closeManualModal);
-document.getElementById('manualBackdrop').addEventListener('click', closeManualModal);
-document.getElementById('manualSaveBtn').addEventListener('click', saveManualFriend);
-
-document.addEventListener('keydown', e => { 
-  if (e.key === 'Escape') {
-    closeQRModal();
-    closeManualModal();
-  }
-});
 
 function toast(icon,title,msg,type){
-  const el=document.createElement('div');el.className=`toast ${type}`;
+  const el=document.createElement('div'); el.className=`toast ${type}`;
   el.innerHTML=`<span class="toast-icon">${icon}</span><div><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
-  document.getElementById('toastWrap').appendChild(el);
-  setTimeout(()=>el.remove(),3200);
+  document.getElementById('toastWrap').appendChild(el); setTimeout(()=>el.remove(),3200);
 }
+
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); }
+  else { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+}
+
 function urlB64(b){const p='='.repeat((4-b.length%4)%4);const r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return new Uint8Array([...r].map(c=>c.charCodeAt(0)));}
 
 init();
